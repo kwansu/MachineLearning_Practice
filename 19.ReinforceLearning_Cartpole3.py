@@ -6,7 +6,7 @@ from tensorflow.python.keras.backend import dtype
 
 environment = gym.make('CartPole-v0')
 
-episodeCount = 5000
+episodeCount = 1000
 discountRate = 0.99
 targetInterval = 8  # 몇번마다 한번씩 메인을 타겟에 복사할지
 rewardSum = 0
@@ -21,7 +21,7 @@ mainModel.compile(tf.keras.optimizers.Adam(learning_rate=0.001), loss='mse')
 
 targetModel = tf.keras.models.clone_model(mainModel)
 
-bufferSize = 9192
+bufferSize = 2048
 halfBufferSize = int(bufferSize/2)
 
 statesBuffer = numpy.zeros([bufferSize, inputSize], dtype=float)
@@ -36,6 +36,7 @@ continueCount = 0  # 몇번 연속 기준을 통과했는지 판단용
 temp = 0
 bufferIndex = 0
 batchSize = 0
+isFirst = True
 
 for i in range(episodeCount):
     e = countR * i
@@ -66,10 +67,12 @@ for i in range(episodeCount):
 
     print("episode: {}  steps: {}".format(i, stepCount))
 
-    if batchSize < 64:
+    if isFirst:
         si = 0
         ei = bufferIndex
-        batchSize = bufferIndex
+        batchSize = min(64,bufferIndex)
+        if bufferIndex >halfBufferSize:
+            isFirst =False
     elif bufferIndex > halfBufferSize:
         si = 0
         ei = bufferIndex
@@ -88,7 +91,7 @@ for i in range(episodeCount):
     y[numpy.arange(batchSize), actionsBuffer[order]] = Q_target
     mainModel.fit(statesBuffer[order], y, batchSize, verbose=0)
 
-    if temp > 7:
+    if temp > 5:
         targetModel.set_weights(mainModel.get_weights())
         temp = 0
 

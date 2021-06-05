@@ -22,6 +22,7 @@ mainModel.compile(tf.keras.optimizers.Adam(learning_rate=0.001), loss='mse')
 targetModel = tf.keras.models.clone_model(mainModel)
 
 bufferSize = 2048
+halfBufferSize =int(bufferSize/2)
 
 statesBuffer = numpy.zeros([bufferSize, inputSize], dtype=float)
 actionsBuffer = numpy.zeros([bufferSize], dtype=int)
@@ -33,7 +34,9 @@ nextOrderList = numpy.arange(1, bufferSize)
 countR = 1 / episodeCount
 continueCount = 0  # 몇번 연속 기준을 통과했는지 판단용
 temp = 0
+batchSize = 0
 bufferIndex = 0
+isFirst = True
 
 for i in range(episodeCount):
     e = countR * i
@@ -56,29 +59,37 @@ for i in range(episodeCount):
         if terminalsBuffer[stepCount]:
             rewardsBuffer[stepCount] = -1
 
-        if bufferIndex > 10:
-            if bufferIndex > 64:
-                batchSize = 64
-            else:
-                batchSize = bufferIndex
+        bufferIndex += 1
+        if bufferIndex >= bufferSize:
+            bufferIndex = 0
 
-            order = random.sample(orderList[0:bufferIndex], batchSize)
-            nextOrder = nextOrderList[order]
+        if isFirst:
+            si = 0
+            ei = bufferIndex
+            batchSize = min(64,bufferIndex)
+            if bufferIndex >halfBufferSize:
+                isFirst =False
+        elif bufferIndex > halfBufferSize:
+            si = 0
+            ei = bufferIndex
+        else:
+            si = halfBufferSize
+            ei = bufferSize-1
 
-            Q_target = rewardsBuffer[0:batchSize] + discountRate * numpy.max(
-                targetModel.predict(statesBuffer[1:batchSize+1]), axis=1) * ~terminalsBuffer[0:batchSize]
-            y = mainModel.predict(statesBuffer[0:batchSize])
-            y[numpy.arange(batchSize), actionsBuffer[0:batchSize]] = Q_target
-            mainModel.fit(statesBuffer[0:batchSize], y, batchSize, verbose=0)
+        order = random.sample(orderList[si:ei],batchSize)
+        nextOrder = nextOrderList[order]
+
+        Q_target = rewardsBuffer[order] + discountRate * numpy.max(targetModel.predict(
+        statesBuffer[nextOrder]), axis=1) * ~terminalsBuffer[order]
+
+        y = mainModel.predict(statesBuffer[order])
+        y[numpy.arange(batchSize), actionsBuffer[order]] = Q_target
+        mainModel.fit(statesBuffer[order], y, batchSize, verbose=0)
 
 
         if temp > 5:
             targetModel.set_weights(mainModel.get_weights())
             temp = 0
-
-        bufferIndex += 1
-        if bufferIndex >= bufferSize:
-            bufferIndex = 0
 
         temp += 1
         stepCount += 1
