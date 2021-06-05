@@ -21,7 +21,7 @@ mainModel.compile(tf.keras.optimizers.Adam(learning_rate=0.001), loss='mse')
 
 targetModel = tf.keras.models.clone_model(mainModel)
 
-bufferSize = 1024
+bufferSize = 2048
 
 statesBuffer = numpy.zeros([bufferSize, inputSize], dtype=float)
 actionsBuffer = numpy.zeros([bufferSize], dtype=int)

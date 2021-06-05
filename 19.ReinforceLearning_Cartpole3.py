@@ -6,7 +6,7 @@ from tensorflow.python.keras.backend import dtype
 
 environment = gym.make('CartPole-v0')
 
-episodeCount = 1000
+episodeCount = 5000
 discountRate = 0.99
 targetInterval = 8  # 몇번마다 한번씩 메인을 타겟에 복사할지
 rewardSum = 0
@@ -21,8 +21,8 @@ mainModel.compile(tf.keras.optimizers.Adam(learning_rate=0.001), loss='mse')
 
 targetModel = tf.keras.models.clone_model(mainModel)
 
-bufferSize = 1024
-halfBufferSize = int(bufferSize/2) - 1
+bufferSize = 9192
+halfBufferSize = int(bufferSize/2)
 
 statesBuffer = numpy.zeros([bufferSize, inputSize], dtype=float)
 actionsBuffer = numpy.zeros([bufferSize], dtype=int)
@@ -35,13 +35,13 @@ countR = 1 / episodeCount
 continueCount = 0  # 몇번 연속 기준을 통과했는지 판단용
 temp = 0
 bufferIndex = 0
+batchSize = 0
 
 for i in range(episodeCount):
     e = countR * i
     stepCount = 0
     isTerminal = False
     statesBuffer[0] = environment.reset()
-    isFirst = True
 
     while not isTerminal:
         if random.random() > e:
@@ -66,22 +66,29 @@ for i in range(episodeCount):
 
     print("episode: {}  steps: {}".format(i, stepCount))
 
-    if bufferIndex > halfBufferSize or isFirst:
+    if batchSize < 64:
+        si = 0
+        ei = bufferIndex
         batchSize = bufferIndex
-        batchStart = 0
-        isFirst = False
+    elif bufferIndex > halfBufferSize:
+        si = 0
+        ei = bufferIndex
+        batchSize = 64
     else:
-        batchSize = halfBufferSize
-        batchStart = halfBufferSize
+        si = halfBufferSize
+        ei = bufferSize-1
+    
+    order = random.sample(orderList[si:ei],batchSize)
+    nextOrder = nextOrderList[order]
 
-    Q_target = rewardsBuffer[batchStart:batchSize] + discountRate * numpy.max(targetModel.predict(
-        statesBuffer[batchStart+1:batchSize+1]), axis=1) * ~terminalsBuffer[batchStart:batchSize]
+    Q_target = rewardsBuffer[order] + discountRate * numpy.max(targetModel.predict(
+        statesBuffer[nextOrder]), axis=1) * ~terminalsBuffer[order]
 
-    y = mainModel.predict(statesBuffer[batchStart:batchSize])
-    y[numpy.arange(batchSize), actionsBuffer[batchStart:batchSize]] = Q_target
-    mainModel.fit(statesBuffer[batchStart:batchSize], y, batchSize, verbose=0)
+    y = mainModel.predict(statesBuffer[order])
+    y[numpy.arange(batchSize), actionsBuffer[order]] = Q_target
+    mainModel.fit(statesBuffer[order], y, batchSize, verbose=0)
 
-    if temp > 2:
+    if temp > 7:
         targetModel.set_weights(mainModel.get_weights())
         temp = 0
 

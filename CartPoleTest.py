@@ -3,7 +3,7 @@ import tensorflow
 import numpy
 
 environment = gym.make('CartPole-v0')
-model = tensorflow.keras.models.load_model('model/cartpole2.h5')
+model = tensorflow.keras.models.load_model('model/cartpole.h5')
 state = environment.reset()
 random_episodes = 0
 rewardSum = 0
