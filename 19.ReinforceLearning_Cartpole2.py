@@ -72,7 +72,7 @@ for i in range(episodeCount):
             mainModel.fit(statesBuffer[0:batchSize], y, batchSize, verbose=0)
 
 
-        if temp > 5:
+        if temp > 10:
             targetModel.set_weights(mainModel.get_weights())
             temp = 0
 
