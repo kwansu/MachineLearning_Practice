@@ -1,4 +1,3 @@
-import re
 from python_simulation.MainPyGame import MainPygame
 from AvoidPoop_World_forCNN import World_AvoidPoop as World
 import tensorflow as tf
@@ -121,7 +120,7 @@ for i in range(episodeCount):
     else:
         continueCount = 0
 
-mainModel.save('model/avoidPoop.h5')
+mainModel.save('model/avoidPoop_cnn.h5')
 
 
 simulationThread.join()

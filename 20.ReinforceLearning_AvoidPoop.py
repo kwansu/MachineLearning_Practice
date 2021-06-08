@@ -1,4 +1,3 @@
-import re
 from python_simulation.MainPyGame import MainPygame
 from AvoidPoop_World import World_AvoidPoop as World
 import tensorflow as tf
