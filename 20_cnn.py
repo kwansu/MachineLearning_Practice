@@ -16,7 +16,8 @@ targetInterval = 10
 buffer = collections.deque(maxlen=20000)
 
 mainModel = tf.keras.Sequential()
-mainModel.add(tf.keras.layers.Conv2D(3, kernel_size=(6, 6), activation='relu', padding='SAME', kernel_initializer='glorot_normal'))
+mainModel.add(tf.keras.layers.Conv2D(16, kernel_size=(8, 8), activation='relu', padding='SAME', kernel_initializer='glorot_normal'))
+mainModel.add(tf.keras.layers.Conv2D(32, kernel_size=(4, 4), activation='relu', padding='SAME', kernel_initializer='glorot_normal'))
 mainModel.add(tf.keras.layers.Flatten())
 mainModel.add(tf.keras.layers.Dense(961, tf.nn.relu, True, 'glorot_normal'))
 #mainModel.add(tf.keras.layers.Dense(961, tf.nn.relu, True, 'glorot_normal'))
