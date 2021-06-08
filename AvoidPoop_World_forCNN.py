@@ -106,7 +106,7 @@ class World_AvoidPoop:
 
         if self.player.pos[0] <= 1 or self.player.pos[0] >= 28:
             isTermimal = True
-            reward = -5
+            reward = -1
 
         #self.player.updateState(state, self.width, self.playHeight)
         x = self.player.pos[0]-1
@@ -118,7 +118,7 @@ class World_AvoidPoop:
         if self.worldTime > self.poopInterval:
             self.worldTime = 0
             newObject = self.createObject()
-            newObject.pos = [random.randrange(1, 30), -1]
+            newObject.pos = [random.randrange(1, 28), -1]
 
         for obj in self.objects:
             if obj.isActive == False:
@@ -140,6 +140,6 @@ class World_AvoidPoop:
                 else:
                     self.isPlayig = False
                     isTermimal = True
-                    reward -= 2
+                    reward = 1
 
         return reward, isTermimal

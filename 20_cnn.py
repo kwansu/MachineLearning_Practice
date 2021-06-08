@@ -9,20 +9,19 @@ import threading
 
 
 
-episodeCount = 500
+episodeCount = 1000
 discountRate = 0.99
 batchSize = 64
 targetInterval = 10
-buffer = collections.deque(maxlen=20000)
 
 mainModel = tf.keras.Sequential()
-mainModel.add(tf.keras.layers.Conv2D(16, kernel_size=(8, 8), activation='relu', padding='SAME', kernel_initializer='glorot_normal'))
-mainModel.add(tf.keras.layers.Conv2D(32, kernel_size=(4, 4), activation='relu', padding='SAME', kernel_initializer='glorot_normal'))
+mainModel.add(tf.keras.layers.Conv2D(16, kernel_size=(8, 8), activation='relu', kernel_initializer='glorot_normal'))
+mainModel.add(tf.keras.layers.Conv2D(32, kernel_size=(4, 4), activation='relu', kernel_initializer='glorot_normal'))
 mainModel.add(tf.keras.layers.Flatten())
-mainModel.add(tf.keras.layers.Dense(961, tf.nn.relu, True, 'glorot_normal'))
+mainModel.add(tf.keras.layers.Dense(256, tf.nn.relu, True, 'glorot_normal'))
 #mainModel.add(tf.keras.layers.Dense(961, tf.nn.relu, True, 'glorot_normal'))
 #mainModel.add(tf.keras.layers.Dense(961, tf.nn.relu, True, 'glorot_normal'))
-mainModel.add(tf.keras.layers.Dense(31, tf.nn.relu, True, 'glorot_normal'))
+#mainModel.add(tf.keras.layers.Dense(31, tf.nn.relu, True, 'glorot_normal'))
 mainModel.add(tf.keras.layers.Dense(3, kernel_initializer='glorot_normal'))
 mainModel.compile(tf.keras.optimizers.Adam(learning_rate=0.001), loss='mse')
 
@@ -36,6 +35,15 @@ width = 300
 height = 400
 world = World(width, height, targetModel)
 
+bufferSize = 10000
+buffer = collections.deque(maxlen=bufferSize)
+
+statesBuffer = np.zeros([bufferSize+1, 30, 30, 1])
+# actionsBuffer = np.zeros([bufferSize], dtype=int)
+# rewardsBuffer = np.zeros([bufferSize], dtype=int)
+# terminalsBuffer = np.zeros([bufferSize], dtype=bool)
+# orderList = tuple(range(0, bufferSize))
+# nextOrderList = np.arange(1, bufferSize)
 
 def runSimulation():
     simulation = MainPygame(width=width, height=height, speed=1, fps=5)
@@ -45,17 +53,22 @@ def runSimulation():
 simulationThread = threading.Thread(target=runSimulation)
 simulationThread.start()
 
+stateIndex = 0
+
 for i in range(episodeCount):
     e = 1. / ((i / 10) + 1)
     #e = countR * i
     isTerminal = False
     stepCount = 0
     rewardSum = 0
-    state = np.zeros([30, 30])
-    nextState = np.zeros([30, 30])
-    world.setupStepSimulation(state)
+    #state = np.zeros([30, 30])
+    #nextState = np.zeros([30, 30])
+    world.setupStepSimulation(statesBuffer[stateIndex])
 
     while not isTerminal:
+        state = statesBuffer[stateIndex]
+        nextState = statesBuffer[stateIndex+1]
+
         if random.random() < e:
             action = random.randrange(0, 3)
         else:
@@ -68,10 +81,10 @@ for i in range(episodeCount):
 
         if len(buffer) > batchSize:
             trainBatch = random.sample(buffer, batchSize)
-            states = np.vstack([x[0] for x in trainBatch])
+            states = np.array([x[0] for x in trainBatch])
             actions = np.array([x[1] for x in trainBatch])
             rewards = np.array([x[2] for x in trainBatch])
-            nextStates = np.vstack([x[3] for x in trainBatch])
+            nextStates = np.array([x[3] for x in trainBatch])
             terminals = np.array([x[4] for x in trainBatch])
 
             Q_target = rewards + discountRate * \
@@ -86,12 +99,16 @@ for i in range(episodeCount):
             targetCount = 0
             targetModel.set_weights(mainModel.get_weights())
 
-        state = nextState
+        #state = nextState
+        stateIndex += 1
+        if stateIndex >= bufferSize:
+            stateIndex = 0
+
         stepCount += 1
         targetCount += 1
         rewardSum += reward
 
-        if (stepCount > 10000):
+        if (stepCount > 2000):
             break
 
     print("episode: {}  steps: {}  rewardSum: {}".format(i, stepCount, rewardSum))
