@@ -7,7 +7,6 @@ import random
 import threading
 
 
-
 episodeCount = 1000
 discountRate = 0.99
 batchSize = 64
@@ -103,7 +102,5 @@ for i in range(episodeCount):
     print("episode: {}  steps: {}  rewardSum: {}".format(i, stepCount, rewardSum))
 
 
-mainModel.save('model/avoidPoop_cnn.h5')
-
-
+mainModel.save('model/othello.h5')
 simulationThread.join()
