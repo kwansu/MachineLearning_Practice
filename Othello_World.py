@@ -6,6 +6,21 @@ import random
 import tensorflow
 
 
+UP_LEFT = (-1,-1)
+UP = (0,-1)
+UP_RIGHT = (-1,1)
+LEFT = (-1,0)
+RIGHT = (1,0)
+DOWN_LEFT = (-1,1)
+DOWN_ = (0,1)
+DOWN_RIGHT = (1,1)
+
+OUT = -1
+SAME = 0
+CHANGE = 1
+CAN_PUT = 2
+
+
 class World_Othello:
     def __init__(self, sideLength, model: tensorflow.keras.Model) -> None:
         self.model = model
@@ -42,14 +57,14 @@ class World_Othello:
             pygame.draw.line(window, (0, 0, 0, 50), (x, 0), (x, self.height))
         for y in range(0, self.cellLineCount, self.cellSize[1]):
             pygame.draw.line(window, (0, 0, 0, 50), (0, y), (self.width, y))
-
-    def updateStone(self, window, stone : Stone, isBlack):
-        stone.isActive =True
+    
+    def drawStone(self,window,stone:Stone,isBlack):
         stone.isBlack = isBlack
         if isBlack:
             window.blit(self.sprite_blakc, stone.pos)
         else:
             window.blit(self.sprite_white, stone.pos)
+
 
     def setup(self, window):
         self.worldTime = 0
@@ -60,10 +75,32 @@ class World_Othello:
             stone.isActive = False
 
         self.drawGrid(window)
-        self.updateStone(window, self.stones[3, 3], False)
-        self.updateStone(window, self.stones[4, 4], False)
-        self.updateStone(window, self.stones[3, 4], True)
-        self.updateStone(window, self.stones[4, 3], True)
+        self.drawStone(window, self.stones[3, 3], False)
+        self.drawStone(window, self.stones[4, 4], False)
+        self.drawStone(window, self.stones[3, 4], True)
+        self.drawStone(window, self.stones[4, 3], True)
+    
+    def changeColor(self, row, col, direction, isBlack):
+        row+=direction[0]
+        col+=direction[1]
+        if row < 0 or row >= self.cellLineCount or col < 0 or col >= self.cellLineCount:
+            return OUT
+        
+        # if self.stones[row, col].isBlack == isBlack:
+        #     if self.changeColor(row, col, direction, isBlack) == OUT:
+        #         return CAN_PUT
+        #     else:
+        #         return BLOCK
+        return CHANGE
+
+    def putStone(self, row, col, window, isBlack):
+        stone : Stone = self.stones[row,col]
+        if stone.canPut == False:
+            return False
+        stone.canPut = False
+        stone.isEmpty = False
+        self.drawStone(window,stone,isBlack)
+        return True
 
     def step(self, action, state):
         reward = 1
