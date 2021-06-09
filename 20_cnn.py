@@ -103,12 +103,12 @@ for i in range(episodeCount):
         targetCount += 1
         rewardSum += reward
 
-        if (stepCount > 2000):
+        if (stepCount > 3000):
             break
 
     print("episode: {}  steps: {}  rewardSum: {}".format(i, stepCount, rewardSum))
 
-    if stepCount > 1500:
+    if stepCount > 2000:
         continueCount += 1
         if continueCount > 10:
             print('통과기준을 만족')
