@@ -1,4 +1,4 @@
-from Othello_Object import Stone
+from Othello_Object import Cell
 from time import sleep
 import numpy as np
 import pygame
@@ -6,22 +6,16 @@ import random
 import tensorflow
 
 
-UP_LEFT = (-1,-1)
-UP = (0,-1)
-UP_RIGHT = (-1,1)
-LEFT = (-1,0)
-RIGHT = (1,0)
-DOWN_LEFT = (-1,1)
-DOWN_ = (0,1)
-DOWN_RIGHT = (1,1)
-
-OUT = -1
-SAME = 0
-CHANGE = 1
-CAN_PUT = 2
-
-
 class World_Othello:
+    UP_LEFT = (-1,-1)
+    UP = (0,-1)
+    UP_RIGHT = (-1,1)
+    LEFT = (-1,0)
+    RIGHT = (1,0)
+    DOWN_LEFT = (-1,1)
+    DOWN_ = (0,1)
+    DOWN_RIGHT = (1,1)
+
     def __init__(self, sideLength, model: tensorflow.keras.Model) -> None:
         self.model = model
         self.isPlayig = True
@@ -43,13 +37,12 @@ class World_Othello:
         self.sprite_blakc = pygame.image.load(
             'python_simulation/othello_stone_black.png')
 
-        self.stones: list(Stone) = np.array(
-            (self.cellLineCount**2), dtype=Stone)
+        self.cells = np.array((self.cellLineCount**2), dtype=Cell)
 
         for x in range(0, self.cellLineCount):
             for y in range(0, self.cellLineCount):
-                self.stones[x, y].pos = (x, y)
-                self.stones[x, y].isActive = False
+                self.cells[x, y].pos = (x, y)
+                self.cells[x, y].isEmpty = True
 
     def drawGrid(self, window):
         window.blit(self.backGround)
@@ -65,7 +58,6 @@ class World_Othello:
         else:
             window.blit(self.sprite_white, stone.pos)
 
-
     def setup(self, window):
         self.worldTime = 0
         self.stepTime = 0
@@ -80,18 +72,22 @@ class World_Othello:
         self.drawStone(window, self.stones[3, 4], True)
         self.drawStone(window, self.stones[4, 3], True)
     
+    def checkColor(self, row, col, isBlack):
+        pass
+        
+
     def changeColor(self, row, col, direction, isBlack):
         row+=direction[0]
         col+=direction[1]
         if row < 0 or row >= self.cellLineCount or col < 0 or col >= self.cellLineCount:
-            return OUT
+            return self.OUT
         
         # if self.stones[row, col].isBlack == isBlack:
         #     if self.changeColor(row, col, direction, isBlack) == OUT:
         #         return CAN_PUT
         #     else:
         #         return BLOCK
-        return CHANGE
+        return self.CAN_PUT
 
     def putStone(self, row, col, window, isBlack):
         stone : Stone = self.stones[row,col]

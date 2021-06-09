@@ -72,6 +72,10 @@ for i in range(episodeCount):
 
         reward, isTerminal = world.step(action, nextState)
 
+        if (stepCount > 3000):
+            isTerminal = True
+            reward = 1
+
         buffer.append([state, action, reward, nextState, isTerminal])
 
         if len(buffer) > batchSize:
@@ -102,9 +106,6 @@ for i in range(episodeCount):
         stepCount += 1
         targetCount += 1
         rewardSum += reward
-
-        if (stepCount > 3000):
-            break
 
     print("episode: {}  steps: {}  rewardSum: {}".format(i, stepCount, rewardSum))
 
