@@ -9,9 +9,6 @@ import threading
 
 episodeCount = 500
 discountRate = 0.99
-batchSize = 64
-targetInterval = 10
-buffer = collections.deque(maxlen=20000)
 
 mainModel = tf.keras.models.Sequential()
 mainModel = tf.keras.Sequential()
@@ -37,9 +34,15 @@ def runSimulation():
     simulation = MainPygame(width=width, height=height, speed=1, fps=5)
     simulation.run(world)
 
-
 simulationThread = threading.Thread(target=runSimulation)
 simulationThread.start()
+
+batchSize = 64
+targetInterval = 10
+bufferSize = 10000
+buffer = collections.deque(maxlen=bufferSize)
+statesBuffer = np.zeros([bufferSize+1, 900])
+bufferIndex = 0
 
 for i in range(episodeCount):
     e = 1. / ((i / 10) + 1)
@@ -47,31 +50,25 @@ for i in range(episodeCount):
     isTerminal = False
     stepCount = 0
     rewardSum = 0
-    state = np.zeros([961])
-    before1 = state
-    before2 = state
-    before3 = state
-    nextState = np.zeros([961])
-    world.setupStepSimulation(state)
+    world.setupStepSimulation(statesBuffer[bufferIndex])
 
     while not isTerminal:
         if random.random() < e:
             action = random.randrange(0, 3)
         else:
-            x = np.reshape(state, [1, 961])
+            x = np.reshape(statesBuffer[bufferIndex], [1, 900])
             action = np.argmax(mainModel.predict(x))
 
-        reward, isTerminal = world.step(action, nextState)
+        reward, isTerminal = world.step(action, statesBuffer[bufferIndex+1])
 
-        if stepCount > 4:
-            buffer.append([before1, before2, before3, state, action, reward, nextState, isTerminal])
+        buffer.append([statesBuffer[bufferIndex], action, reward, statesBuffer[bufferIndex+1], isTerminal])
 
         if len(buffer) > batchSize:
             trainBatch = random.sample(buffer, batchSize)
-            states = np.vstack([x[0] for x in trainBatch])
+            states = np.array([x[0] for x in trainBatch])
             actions = np.array([x[1] for x in trainBatch])
             rewards = np.array([x[2] for x in trainBatch])
-            nextStates = np.vstack([x[3] for x in trainBatch])
+            nextStates = np.array([x[3] for x in trainBatch])
             terminals = np.array([x[4] for x in trainBatch])
 
             Q_target = rewards + discountRate * \
@@ -86,10 +83,9 @@ for i in range(episodeCount):
             targetCount = 0
             targetModel.set_weights(mainModel.get_weights())
 
-        before3 = before2
-        before2 = before1
-        before1= state
-        state = nextState
+        bufferIndex += 1
+        if bufferIndex >= bufferSize:
+            bufferIndex = 0
         stepCount += 1
         targetCount += 1
         rewardSum += reward

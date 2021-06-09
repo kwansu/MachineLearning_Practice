@@ -38,11 +38,7 @@ bufferSize = 10000
 buffer = collections.deque(maxlen=bufferSize)
 
 statesBuffer = np.zeros([bufferSize+1, 30, 30, 1])
-# actionsBuffer = np.zeros([bufferSize], dtype=int)
-# rewardsBuffer = np.zeros([bufferSize], dtype=int)
-# terminalsBuffer = np.zeros([bufferSize], dtype=bool)
-# orderList = tuple(range(0, bufferSize))
-# nextOrderList = np.arange(1, bufferSize)
+
 
 def runSimulation():
     simulation = MainPygame(width=width, height=height, speed=1, fps=5)
@@ -112,7 +108,7 @@ for i in range(episodeCount):
 
     print("episode: {}  steps: {}  rewardSum: {}".format(i, stepCount, rewardSum))
 
-    if stepCount > 2000:
+    if stepCount > 1500:
         continueCount += 1
         if continueCount > 10:
             print('통과기준을 만족')

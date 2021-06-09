@@ -9,12 +9,12 @@ import threading
 
 episodeCount = 1000
 discountRate = 0.99
-batchSize = 64
-targetInterval = 10
 
 mainModel = tf.keras.Sequential()
-mainModel.add(tf.keras.layers.Conv2D(16, kernel_size=(8, 8), activation='relu', kernel_initializer='glorot_normal'))
-mainModel.add(tf.keras.layers.Conv2D(32, kernel_size=(4, 4), activation='relu', kernel_initializer='glorot_normal'))
+mainModel.add(tf.keras.layers.Conv2D(16, kernel_size=(8, 8),
+              activation='relu', kernel_initializer='glorot_normal'))
+mainModel.add(tf.keras.layers.Conv2D(32, kernel_size=(4, 4),
+              activation='relu', kernel_initializer='glorot_normal'))
 mainModel.add(tf.keras.layers.Flatten())
 mainModel.add(tf.keras.layers.Dense(256, tf.nn.relu, True, 'glorot_normal'))
 mainModel.add(tf.keras.layers.Dense(3, kernel_initializer='glorot_normal'))
@@ -22,19 +22,20 @@ mainModel.compile(tf.keras.optimizers.Adam(learning_rate=0.001), loss='mse')
 
 targetModel = tf.keras.models.clone_model(mainModel)
 
-targetCount = targetInterval-batchSize
-
-width = 300
-height = 400
-world = World(width, height, targetModel)
+lineLenth = 320
+world = World(lineLenth, targetModel)
 
 bufferSize = 10000
 buffer = collections.deque(maxlen=bufferSize)
 
 statesBuffer = np.zeros([bufferSize+1, 30, 30, 1])
+batchSize = 64
+targetInterval = 10
+targetCount = targetInterval-batchSize
+
 
 def runSimulation():
-    simulation = MainPygame(width=width, height=height, speed=1, fps=5)
+    simulation = MainPygame(lineLenth, lineLenth, speed=1, fps=5)
     simulation.run(world)
 
 
@@ -45,12 +46,9 @@ stateIndex = 0
 
 for i in range(episodeCount):
     e = 1. / ((i / 10) + 1)
-    #e = countR * i
     isTerminal = False
     stepCount = 0
     rewardSum = 0
-    #state = np.zeros([30, 30])
-    #nextState = np.zeros([30, 30])
     world.setupStepSimulation(statesBuffer[stateIndex])
 
     while not isTerminal:
@@ -60,7 +58,7 @@ for i in range(episodeCount):
         if random.random() < e:
             action = random.randrange(0, 3)
         else:
-            x = np.reshape(state, [1,30,30,1])
+            x = np.reshape(state, [1, 30, 30, 1])
             action = np.argmax(mainModel.predict(x))
 
         reward, isTerminal = world.step(action, nextState)
