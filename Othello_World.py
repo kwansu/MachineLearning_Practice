@@ -7,33 +7,22 @@ import tensorflow
 
 
 class World_Othello:
-    UP_LEFT = (-1,-1)
-    UP = (0,-1)
-    UP_RIGHT = (-1,1)
-    LEFT = (-1,0)
-    RIGHT = (1,0)
-    DOWN_LEFT = (-1,1)
-    DOWN = (0,1)
-    DOWN_RIGHT = (1,1)
-
-    DIRECTION = (UP_LEFT,UP,UP_RIGHT,LEFT,RIGHT,DOWN_LEFT,DOWN,DOWN_RIGHT)
-
-    def __init__(self, sideLength, model: tensorflow.keras.Model) -> None:
+    def __init__(self, sideLength,window, model: tensorflow.keras.Model) -> None:
         self.model = model
-        self.isPlayig = True
-        self.onStep = True
+        self.window = window
         self.worldTime = 0.0
-        self.stepTime = 0.0
         self.stepInterval = 0.1
         self.cellLineCount = 8
+        self.gameTurn = 0
+        self.maxGameTurn = self.cellLineCount**2 - 4
+        self.isBlackTurn = True
         self.width = sideLength
         self.height = sideLength
         self.cellSize = (sideLength/self.cellLineCount,
                          sideLength/self.cellLineCount)
-        self.gameTurn = 0
 
         self.backGround = pygame.image.load(
-            'python_simulation/backGround_othello.png')
+            'python_simulation/backGround.png')
         self.sprite_white = pygame.image.load(
             'python_simulation/othello_stone_white.png')
         self.sprite_blakc = pygame.image.load(
@@ -46,97 +35,71 @@ class World_Othello:
                 self.cells[x, y].pos = (x, y)
                 self.cells[x, y].isEmpty = True
 
-    def drawGrid(self, window):
-        window.blit(self.backGround)
+    def drawGrid(self):
+        self.window.blit(self.backGround)
         for x in range(0, self.cellLineCount, self.cellSize[0]):
-            pygame.draw.line(window, (0, 0, 0, 50), (x, 0), (x, self.height))
+            pygame.draw.line(self.window, (0, 0, 0, 50), (x, 0), (x, self.height))
         for y in range(0, self.cellLineCount, self.cellSize[1]):
-            pygame.draw.line(window, (0, 0, 0, 50), (0, y), (self.width, y))
+            pygame.draw.line(self.window, (0, 0, 0, 50), (0, y), (self.width, y))
     
-    def drawCell(self,window,cell:Cell,isBlack):
+    def drawCell(self,cell:Cell,isBlack):
         cell.isBlack = isBlack
         if isBlack:
-            window.blit(self.sprite_blakc, cell.pos)
+            self.window.blit(self.sprite_blakc, cell.pos)
         else:
-            window.blit(self.sprite_white, cell.pos)
+            self.window.blit(self.sprite_white, cell.pos)
 
-    def setup(self, window):
+    def setup(self):
         self.worldTime = 0
-        self.stepTime = 0
         self.gameTurn = 0
 
         for cell in self.cells:
-            cell.isEmpty = False
+            cell.isEmpty = True
 
-        self.drawGrid(window)
-        self.drawCell(window, self.cells[3, 3], False)
-        self.drawCell(window, self.cells[4, 4], False)
-        self.drawCell(window, self.cells[3, 4], True)
-        self.drawCell(window, self.cells[4, 3], True)
-
-    def changeCell(self, cell : Cell, isBlack):
-        assert cell.isBlack != isBlack
-        cell.isBlack = isBlack
-        bitColor = Cell.BIT_BLACK if isBlack else Cell.BIT_WHITE
-        bitCheck = bitColor | Cell.BIT_OUT
-
-        col = cell.pos[0]
-        row = cell.pos[1]
-
-        # 모든 방향(4비트씩)에 대한 정보 업데이트
-        for i in range(0,8):
-            #현재 방향에 대한 비트정보만 남긴다.
-            bit = cell.bitAroundInfo
-            bitDirInfo = cell.bitAroundInfo & (Cell.BIT_DIR_MASK << i)
-            #현재 방향에 대해 out(범위밖)이라면 넘긴다.
-            if Cell.BIT_OUT_MASK & bitDirInfo != 0:
-                continue
-
-            bitReverseDir = Cell.BIT_DIR_MASK << (7-i)
-            bitDirCheck = bitCheck << i
+        self.drawGrid(self.window)
+        self.drawCell(self.window, self.cells[3, 3], False)
+        self.drawCell(self.window, self.cells[4, 4], False)
+        self.drawCell(self.window, self.cells[3, 4], True)
+        self.drawCell(self.window, self.cells[4, 3], True)
     
-    def updateCell(self, row, col, dir,bitDirCheck, bitReverseInfo,bitReverseDir,isFirst):
-        col+=dir[0]
-        row+=dir[1]
-        cell : Cell = self.cells[col,row]
-        bit = cell.bitAroundInfo
+    def put(self, pos, isBlack):
+        cell : Cell = self.cells[pos[0],pos[1]]
 
-        #정보가 이미 같다면 리턴
-        if (bit & bitReverseDir) == bitReverseInfo:
-            return
+        if cell.isEmpty == False:
+            return 0
 
-        #셀에서 부른(call) 방향에 대한 정보를 갱신한다.
-        cell.bitAroundInfo = (bit & (~bitReverseDir)) | bitReverseInfo
+        changedSum = 0
+        
+        for dir in range(0,8):
+            changedSum += max(0,self.changeColor(cell.Around[dir],dir,isBlack))
+        
+        return changedSum
 
-        #계속 같은 방향으로 색이 변하지 않는다면 재귀호출(막혀있는지도 검사)
-        if bitDirCheck & bit == 0:
-            if isFirst:
-                if cell.isBlack:
-                    #bitReverseInfo = 
-                    pass
-                else:
-                    pass
-
-            self.updateCell(row,col,dir,bitDirCheck,bitReverseInfo,bitReverseDir,False)
     
-    def checkColor(self, row, col, isBlack):
-        pass
-        
+    def changeColor(self, cell:Cell, dir, isChangeToBlack):
+        if cell == None or cell.isEmpty:
+            return -1
 
-    def changeColor(self, row, col, direction, isBlack):
-        row+=direction[0]
-        col+=direction[1]
-        if row < 0 or row >= self.cellLineCount or col < 0 or col >= self.cellLineCount:
-            return self.OUT
+        if cell.isBlack == isChangeToBlack:
+            return 0
         
-        return self.CAN_PUT
+        result = self.changeColor(cell.Around[dir], dir, isChangeToBlack)
+        if result >= 0:
+            self.drawCell(cell,isChangeToBlack)
+            return result+1
+        
+        return -1
 
     def step(self, action, state):
-        reward = 1
-        isTermimal = False
+        state[action[0], action[1]] = 1 if self.isBlackTurn else 2
+        changedSum = self.put(action, self.isBlackTurn)
+        if changedSum <= 0:
+            return -100, True
 
-        for obj in self.objects:
-            if obj.isActive == False:
-                continue
+        self.isBlackTurn = ~self.isBlackTurn
+        self.gameTurn += 1
 
-        return reward, isTermimal
+        if self.gameTurn >= self.maxGameTurn:
+            return 100+changedSum, True
+        
+        return changedSum, False
