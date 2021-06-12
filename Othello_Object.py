@@ -31,10 +31,10 @@ class Cell:
         self.pos = np.array(pos)
         self.isEmpty = True
         self.isBlack = False
-        self.dir = np.zeros(8,dtype=int)
         # 현재 셀을 중심으로 8방향에 대한 정보를 4비트씩나눠서 쓴다.
         # 비었는지, 블랙, 화이트, 변경가능(다른색으로 막혔을경우)인지 판단용
         self.bitAroundInfo = 0
+        self.Around = []
 
     def updateCellInfo(self, isBlack):
         self.isBlack = isBlack

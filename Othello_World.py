@@ -28,7 +28,7 @@ class World_Othello:
         self.sprite_blakc = pygame.image.load(
             'python_simulation/othello_stone_black.png')
 
-        self.cells = np.array((self.cellLineCount**2), dtype=Cell)
+        self.cells = np.empty((self.cellLineCount**2), dtype=Cell)
 
         for x in range(0, self.cellLineCount):
             for y in range(0, self.cellLineCount):
@@ -67,6 +67,9 @@ class World_Othello:
 
         if cell.isEmpty == False:
             return 0
+
+        cell.isEmpty = False
+        self.drawCell(cell,isBlack)
 
         changedSum = 0
         

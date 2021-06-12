@@ -11,31 +11,29 @@ episodeCount = 1000
 discountRate = 0.99
 
 mainModel = tf.keras.Sequential()
-mainModel.add(tf.keras.layers.Conv2D(16, kernel_size=(8, 8),
+mainModel.add(tf.keras.layers.Conv2D(16, kernel_size=(5, 5), padding='SAME',
               activation='relu', kernel_initializer='glorot_normal'))
-mainModel.add(tf.keras.layers.Conv2D(32, kernel_size=(4, 4),
+mainModel.add(tf.keras.layers.Conv2D(32, kernel_size=(3, 3), padding='SAME',
               activation='relu', kernel_initializer='glorot_normal'))
 mainModel.add(tf.keras.layers.Flatten())
 mainModel.add(tf.keras.layers.Dense(256, tf.nn.relu, True, 'glorot_normal'))
 mainModel.add(tf.keras.layers.Dense(3, kernel_initializer='glorot_normal'))
 mainModel.compile(tf.keras.optimizers.Adam(learning_rate=0.001), loss='mse')
-
 targetModel = tf.keras.models.clone_model(mainModel)
-
-lineLenth = 320
-world = World(lineLenth, targetModel)
 
 bufferSize = 10000
 buffer = collections.deque(maxlen=bufferSize)
 
-statesBuffer = np.zeros([bufferSize+1, 30, 30, 1])
+statesBuffer = np.zeros([bufferSize+1, 8, 8, 1])
 batchSize = 64
 targetInterval = 10
 targetCount = targetInterval-batchSize
 
+lineLenth = 320
+simulation = MainPygame(lineLenth, lineLenth, speed=1, fps=5)
+world = World(lineLenth,simulation.window, targetModel)
 
 def runSimulation():
-    simulation = MainPygame(lineLenth, lineLenth, speed=1, fps=5)
     simulation.run(world)
 
 
@@ -45,7 +43,7 @@ simulationThread.start()
 stateIndex = 0
 
 for i in range(episodeCount):
-    e = 1. / ((i / 10) + 1)
+    e = 1. / ((i / 5) + 1)
     isTerminal = False
     stepCount = 0
     rewardSum = 0
