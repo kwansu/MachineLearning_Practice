@@ -7,7 +7,7 @@ import tensorflow
 
 
 class World_Othello:
-    def __init__(self, sideLength,window, model: tensorflow.keras.Model) -> None:
+    def __init__(self, sideLength, window, model: tensorflow.keras.Model) -> None:
         self.model = model
         self.window = window
         self.worldTime = 0.0
@@ -28,21 +28,19 @@ class World_Othello:
         self.sprite_blakc = pygame.image.load(
             'python_simulation/othello_stone_black.png')
 
-        self.cells = [Cell() for i in range(8)]
-
-        for x in range(0, self.cellLineCount):
-            for y in range(0, self.cellLineCount):
-                self.cells[x, y].pos = (x, y)
-                self.cells[x, y].isEmpty = True
+        self.cells = tuple(tuple(Cell((col, row)) for col in range(
+            self.cellLineCount)) for row in range(self.cellLineCount))
 
     def drawGrid(self):
         self.window.blit(self.backGround)
         for x in range(0, self.cellLineCount, self.cellSize[0]):
-            pygame.draw.line(self.window, (0, 0, 0, 50), (x, 0), (x, self.height))
+            pygame.draw.line(self.window, (0, 0, 0, 50),
+                             (x, 0), (x, self.height))
         for y in range(0, self.cellLineCount, self.cellSize[1]):
-            pygame.draw.line(self.window, (0, 0, 0, 50), (0, y), (self.width, y))
-    
-    def drawCell(self,cell:Cell,isBlack):
+            pygame.draw.line(self.window, (0, 0, 0, 50),
+                             (0, y), (self.width, y))
+
+    def drawCell(self, cell: Cell, isBlack):
         cell.isBlack = isBlack
         if isBlack:
             self.window.blit(self.sprite_blakc, cell.pos)
@@ -61,36 +59,36 @@ class World_Othello:
         self.drawCell(self.window, self.cells[4, 4], False)
         self.drawCell(self.window, self.cells[3, 4], True)
         self.drawCell(self.window, self.cells[4, 3], True)
-    
+
     def put(self, pos, isBlack):
-        cell : Cell = self.cells[pos[0],pos[1]]
+        cell: Cell = self.cells[pos[0], pos[1]]
 
         if cell.isEmpty == False:
             return 0
 
         cell.isEmpty = False
-        self.drawCell(cell,isBlack)
+        self.drawCell(cell, isBlack)
 
         changedSum = 0
-        
-        for dir in range(0,8):
-            changedSum += max(0,self.changeColor(cell.AroundCell[dir],dir,isBlack))
-        
+
+        for dir in range(0, 8):
+            changedSum += max(0,
+                              self.changeColor(cell.AroundCell[dir], dir, isBlack))
+
         return changedSum
 
-    
-    def changeColor(self, cell:Cell, dir, isChangeToBlack):
+    def changeColor(self, cell: Cell, dir, isChangeToBlack):
         if cell == None or cell.isEmpty:
             return -1
 
         if cell.isBlack == isChangeToBlack:
             return 0
-        
+
         result = self.changeColor(cell.AroundCell[dir], dir, isChangeToBlack)
         if result >= 0:
-            self.drawCell(cell,isChangeToBlack)
+            self.drawCell(cell, isChangeToBlack)
             return result+1
-        
+
         return -1
 
     def step(self, action, state):
@@ -104,5 +102,5 @@ class World_Othello:
 
         if self.gameTurn >= self.maxGameTurn:
             return 100+changedSum, True
-        
+
         return changedSum, False

@@ -1,15 +1,18 @@
 import numpy as np
-from numpy.core.numeric import count_nonzero
 
 class AAA:
-    count = 0
-
-    def __init__(self, num) -> None:
-        self.num = num +10
-        AAA.count +=1
+    def __init__(self, col, row) -> None:
+        self.pos = (col,row)
 
 
-l = [AAA(i) for i in range(10)]
+l = tuple(tuple(AAA(col,row) for col in range(8)) for row in range(8))
 
-for aaa in l:
-    print(aaa.num)
+
+for cols in l:
+    print()
+    for row in cols:
+        print(row.pos,end=',')
+
+print(l[3][4].pos)
+
+        
