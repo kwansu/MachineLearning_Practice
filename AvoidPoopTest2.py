@@ -8,7 +8,7 @@ import time
 width = 300
 height = 400
 
-model = tf.keras.models.load_model('model/avoidPoop.h5')
+model = tf.keras.models.load_model('model/avoidPoop_cnn.h5')
 world = World(width, height, model)
 
 

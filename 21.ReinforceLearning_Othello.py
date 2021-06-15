@@ -17,7 +17,7 @@ mainModel.add(tf.keras.layers.Conv2D(32, kernel_size=(3, 3), padding='SAME',
               activation='relu', kernel_initializer='glorot_normal'))
 mainModel.add(tf.keras.layers.Flatten())
 mainModel.add(tf.keras.layers.Dense(256, tf.nn.relu, True, 'glorot_normal'))
-mainModel.add(tf.keras.layers.Dense(3, kernel_initializer='glorot_normal'))
+mainModel.add(tf.keras.layers.Dense(64, kernel_initializer='glorot_normal'))
 mainModel.compile(tf.keras.optimizers.Adam(learning_rate=0.001), loss='mse')
 targetModel = tf.keras.models.clone_model(mainModel)
 
@@ -47,16 +47,16 @@ for i in range(episodeCount):
     isTerminal = False
     stepCount = 0
     rewardSum = 0
-    world.setupStepSimulation(statesBuffer[stateIndex])
+    world.setup(statesBuffer[stateIndex])
 
     while not isTerminal:
         state = statesBuffer[stateIndex]
         nextState = statesBuffer[stateIndex+1]
 
         if random.random() < e:
-            action = random.randrange(0, 3)
+            action = random.randrange(0, 64)
         else:
-            x = np.reshape(state, [1, 30, 30, 1])
+            x = np.reshape(state, [1, 8, 8, 1])
             action = np.argmax(mainModel.predict(x))
 
         reward, isTerminal = world.step(action, nextState)

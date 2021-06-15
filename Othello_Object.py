@@ -34,7 +34,23 @@ class Cell:
         # 현재 셀을 중심으로 8방향에 대한 정보를 4비트씩나눠서 쓴다.
         # 비었는지, 블랙, 화이트, 변경가능(다른색으로 막혔을경우)인지 판단용
         self.bitAroundInfo = 0
-        self.AroundCell = []
+        self.aroundCells = [None for i in range(8)]
+
+    def setAroundCells(self, cells):
+        self.__setAroundCells(self.pos[0]-1,self.pos[1]-1,cells,0)
+        self.__setAroundCells(self.pos[0],self.pos[1]-1,cells,1)
+        self.__setAroundCells(self.pos[0]+1,self.pos[1]-1,cells,2)
+        self.__setAroundCells(self.pos[0]-1,self.pos[1],cells,3)
+        self.__setAroundCells(self.pos[0]+1,self.pos[1],cells,4)
+        self.__setAroundCells(self.pos[0]-1,self.pos[1]+1,cells,5)
+        self.__setAroundCells(self.pos[0],self.pos[1]+1,cells,6)
+        self.__setAroundCells(self.pos[0]+1,self.pos[1]+1,cells,7)
+
+    def __setAroundCells(self, x, y, cells, dir):
+        if x < 0 or x >= 8 or y < 0 or y >=8:
+            return
+        
+        self.aroundCells[dir] = cells[x][y]
 
     def updateCellInfo(self, isBlack):
         self.isBlack = isBlack
