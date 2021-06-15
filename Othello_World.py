@@ -21,6 +21,8 @@ class World_Othello:
         self.cellSize = (int(sideLength/self.cellLineCount),
                          int(sideLength/self.cellLineCount))
 
+        self.putableList = []
+
         self.backGround = pygame.image.load(
             'python_simulation/backGround.png')
         self.sprite_white = pygame.image.load(
@@ -59,6 +61,7 @@ class World_Othello:
         for cols in self.cells:
             for cell in cols:
                 cell.isEmpty = True
+                cell.enablePut = False
 
         self.drawGrid()
         self.put((3,3), False)
@@ -85,23 +88,68 @@ class World_Othello:
         changedSum = 0
 
         for dir in range(0, 8):
-            changedSum += max(0,self.changeColor(cell.aroundCells[dir], dir, isBlack))
-
+            dirInfo = self.changeColor(cell.aroundCells[dir], dir, isBlack)
+            if dirInfo > 0:
+                changedSum += dirInfo
+        
+        self.updatePutableList(cell,isBlack)
         return changedSum
 
-    def changeColor(self, cell: Cell, dir, isChangeToBlack):
-        if cell == None or cell.isEmpty:
-            return -1
+    #인접방향에 대한 정보. 같은색이면 계속 재귀해서 확인한다.
+    DIR_INFO_EMPTY = -2
+    DIR_INFO_NONE = -1
+    DIR_INFO_BLOCK = 0
 
+    def checkCellDirectionInfo(self,cell:Cell,dir,isBlack):
+        if cell == None:
+            return World_Othello.DIR_INFO_NONE, None
+        if cell.isEmpty:
+            return World_Othello.DIR_INFO_EMPTY, cell
+        if cell.isBlack != isBlack:
+            return World_Othello.DIR_INFO_BLOCK, None
+
+        return self.checkCellDirectionInfo(cell.aroundCells[dir],dir,isBlack)
+
+    def updatePutableList(self, cell :Cell,isBlack):
+        for dir in range(4):
+            dirInfo, emptyCell = self.checkCellDirectionInfo(cell.aroundCells[dir],dir,isBlack)
+            dirInfoR, emptyCellR = self.checkCellDirectionInfo(cell.aroundCells[7-dir],7-dir,isBlack)
+
+            if dirInfo == World_Othello.DIR_INFO_EMPTY:
+                if dirInfoR == World_Othello.DIR_INFO_BLOCK:
+                    self.addPutableList(emptyCell,True)
+                else:
+                    self.addPutableList(emptyCell,False)
+            
+            if dirInfoR == World_Othello.DIR_INFO_EMPTY:
+                if dirInfo == World_Othello.DIR_INFO_BLOCK:
+                    self.addPutableList(emptyCellR,True)
+                else:
+                    self.addPutableList(emptyCellR,False)
+    
+    def addPutableList(self, cell:Cell, enablePut):
+        if cell.enablePut != enablePut:
+            cell.enablePut = enablePut
+            if enablePut:
+                self.putableList.append(cell)
+            else:
+                self.putableList.remove(cell)
+
+    def changeColor(self, cell: Cell, dir, isChangeToBlack):
+        if cell == None:
+            return World_Othello.DIR_INFO_NONE
+        if cell.isEmpty:
+            return World_Othello.DIR_INFO_EMPTY
         if cell.isBlack == isChangeToBlack:
-            return 0
+            return World_Othello.DIR_INFO_BLOCK
 
         result = self.changeColor(cell.aroundCells[dir], dir, isChangeToBlack)
         if result >= 0:
             self.drawCell(cell, isChangeToBlack)
+            self.updatePutableList(cell,isChangeToBlack)
             return result+1
 
-        return -1
+        return World_Othello.DIR_INFO_NONE
 
     def step(self, action, state):
         state[action[0], action[1]] = 1 if self.isBlackTurn else 2

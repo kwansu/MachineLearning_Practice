@@ -83,7 +83,6 @@ for i in range(episodeCount):
             targetCount = 0
             targetModel.set_weights(mainModel.get_weights())
 
-        #state = nextState
         stateIndex += 1
         if stateIndex >= bufferSize:
             stateIndex = 0
