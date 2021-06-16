@@ -1,7 +1,6 @@
 from python_simulation.MainPyGame import MainPygame
 from Othello_World import World_Othello as World
 import pygame
-import threading
 
 pygame.init()
 width = 320

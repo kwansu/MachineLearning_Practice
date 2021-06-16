@@ -5,11 +5,26 @@ class Cell:
         self.pos = np.array(pos)
         self.isEmpty = True
         self.isBlack = False
-        # 현재 셀을 중심으로 8방향에 대한 정보를 4비트씩나눠서 쓴다.
-        # 비었는지, 블랙, 화이트, 변경가능(다른색으로 막혔을경우)인지 판단용
-        self.bitAroundInfo = 0
+        self.bitAroundPutable = 0  #주변 8방향으로 둘 수 있는지를 비트 단위로 저장
         self.aroundCells = [None for i in range(8)]
-        self.enablePut = False
+    
+    #현재 셀에서 주위 8방향에 대해 둘 수 있는 경우를 추가함
+    #이미 추가되어있다면 false, 아니라면 true
+    def addPutable(self, bitPutableInfo)->bool:
+        if bitPutableInfo & self.bitAroundPutable == 0:
+            self.bitAroundPutable+=bitPutableInfo
+            return True
+        
+        return False
+
+    #주위 8방향에 대해 더 이상 둘 수 있는 곳이 없으면 참, 아니면 거짓
+    #정확하게는 가능리스트에서 삭제해야할 경우만 참
+    def removePutable(self, bitPutableInfo) -> bool:
+        if self.bitAroundPutable & bitPutableInfo == 0:
+            return False
+        
+        self.bitAroundPutable -= bitPutableInfo
+        return True if self.bitAroundPutable == 0 else False
 
     def setAroundCells(self, cells):
         self.__setAroundCells(self.pos[0]-1,self.pos[1]-1,cells,0)
@@ -26,18 +41,14 @@ class Cell:
             return
         self.aroundCells[dir] = cells[x][y]
 
-    def updateCellInfo(self, isBlack):
-        self.isBlack = isBlack
-        self.isEmpty = False
-
-    # UP_LEFT = 0
-    # UP = 1
-    # UP_RIGHT = 2
-    # LEFT = 3
-    # RIGHT = 4
-    # DOWN_LEFT = 5
-    # DOWN_ = 6
-    # DOWN_RIGHT = 7
+    # UP_LEFT = 0b10
+    # UP = 0b100
+    # UP_RIGHT = 0b1000
+    # LEFT = 0b10000
+    # RIGHT = 0b100000
+    # DOWN_LEFT = 0b1000000
+    # DOWN_ = 0b10000000
+    # DOWN_RIGHT = 0b100000000
 
     # PUT_IMPOSSIBLE = 0
     # PUT_CAN_BLACK = 1

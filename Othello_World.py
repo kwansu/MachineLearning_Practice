@@ -57,11 +57,12 @@ class World_Othello:
         self.worldTime = 0
         self.gameTurn = 0
         self.isBlackTurn = True
+        self.putableList.clear()
 
         for cols in self.cells:
             for cell in cols:
                 cell.isEmpty = True
-                cell.enablePut = False
+                cell.bitAroundPutable = 0
 
         self.drawGrid()
         self.put((3,3), False)
@@ -77,13 +78,16 @@ class World_Othello:
             state[4,3] = -1
 
     def put(self, pos, isBlack):
-        cell: Cell = self.cells[pos[0]][pos[1]]
+        cell:Cell = self.cells[pos[0]][pos[1]]
 
         if cell.isEmpty == False:
             return 0
 
         cell.isEmpty = False
         self.drawCell(cell, isBlack)
+        if cell.bitAroundPutable != 0:
+            cell.bitAroundPutable = 0
+            self.putableList.remove(cell)
 
         changedSum = 0
 
@@ -112,28 +116,29 @@ class World_Othello:
 
     def updatePutableList(self, cell :Cell,isBlack):
         for dir in range(4):
+            dirR = 7-dir
             dirInfo, emptyCell = self.checkCellDirectionInfo(cell.aroundCells[dir],dir,isBlack)
-            dirInfoR, emptyCellR = self.checkCellDirectionInfo(cell.aroundCells[7-dir],7-dir,isBlack)
+            dirInfoR, emptyCellR = self.checkCellDirectionInfo(cell.aroundCells[dirR],dirR,isBlack)
 
             if dirInfo == World_Othello.DIR_INFO_EMPTY:
                 if dirInfoR == World_Othello.DIR_INFO_BLOCK:
-                    self.addPutableList(emptyCell,True)
+                    self.addPutableList(emptyCell,dir)
                 else:
-                    self.addPutableList(emptyCell,False)
+                    self.removePutableList(emptyCell,dir)
             
             if dirInfoR == World_Othello.DIR_INFO_EMPTY:
                 if dirInfo == World_Othello.DIR_INFO_BLOCK:
-                    self.addPutableList(emptyCellR,True)
+                    self.addPutableList(emptyCellR,dirR)
                 else:
-                    self.addPutableList(emptyCellR,False)
+                    self.removePutableList(emptyCellR,dirR)
     
-    def addPutableList(self, cell:Cell, enablePut):
-        if cell.enablePut != enablePut:
-            cell.enablePut = enablePut
-            if enablePut:
-                self.putableList.append(cell)
-            else:
-                self.putableList.remove(cell)
+    def addPutableList(self, cell:Cell, dir):
+        if cell.addPutable(1<<dir):
+            self.putableList.append(cell)
+    
+    def removePutableList(self, cell:Cell, dir):
+        if cell.removePutable(1<<dir):
+            self.putableList.remove(cell)
 
     def changeColor(self, cell: Cell, dir, isChangeToBlack):
         if cell == None:
@@ -175,12 +180,17 @@ class World_Othello:
         putPos[0] = int(putPos[0]/self.cellSize[0])
         putPos[1] = int(putPos[1]/self.cellSize[1])
 
-        changedSum = self.put(putPos, self.isBlackTurn)
+        changedSum = self.put(putPos, True)
         if changedSum <= 0:
             self.setup()
             return
 
-        self.isBlackTurn = not self.isBlackTurn
+        #self.isBlackTurn = not self.isBlackTurn
+        randCell = random.choice(self.putableList)
+        changedSum = self.put(randCell.pos, False)
+        if changedSum <= 0:
+            self.setup()
+            return
 
         if self.gameTurn >= self.maxGameTurn:
             self.setup()
