@@ -21,7 +21,9 @@ class World_Othello:
         self.cellSize = (int(sideLength/self.cellLineCount),
                          int(sideLength/self.cellLineCount))
 
-        self.putableList = []
+        #self.putableList = []
+        self.blackPutableList = []
+        self.whitePutableList = []
 
         self.backGround = pygame.image.load(
             'python_simulation/backGround.png')
@@ -29,6 +31,10 @@ class World_Othello:
             'python_simulation/othello_stone_white.png')
         self.sprite_blakc = pygame.image.load(
             'python_simulation/othello_stone_black.png')
+        self.temp = pygame.image.load(
+            'python_simulation/othello_temp.png')
+        self.temp2 = pygame.image.load(
+            'python_simulation/othello_temp2.png')
 
         self.cells = tuple(tuple(Cell((col, row)) for row in range(
             self.cellLineCount)) for col in range(self.cellLineCount))
@@ -92,9 +98,8 @@ class World_Othello:
         changedSum = 0
 
         for dir in range(0, 8):
-            dirInfo = self.changeColor(cell.aroundCells[dir], dir, isBlack)
-            if dirInfo > 0:
-                changedSum += dirInfo
+            if (isBlack and cell.bitAroundPutableBlack & 1<<dir != 0) or (not isBlack and cell.bitAroundPutableWhite & 1<<dir != 0):
+                changedSum += max(0,self.changeColor(cell.aroundCells[dir], dir, isBlack))
         
         self.updatePutableList(cell,isBlack)
         return changedSum
@@ -114,35 +119,58 @@ class World_Othello:
 
         return self.checkCellDirectionInfo(cell.aroundCells[dir],dir,isBlack)
 
-    def updatePutableList(self, cell :Cell,isBlack):
-        for dir in range(4):
+    def updatePutableList(self, cell :Cell):
+        for dir in range(8):
             dirR = 7-dir
-            dirInfo, emptyCell = self.checkCellDirectionInfo(cell.aroundCells[dir],dir,isBlack)
-            dirInfoR, emptyCellR = self.checkCellDirectionInfo(cell.aroundCells[dirR],dirR,isBlack)
+            nextCell :Cell= cell.aroundCells[dir]
+            if nextCell == None:
+                return
+            if nextCell.isEmpty:
+                if cell.getBitAroundPutable() & dirR != 0:
+                    nextCell.addDirectionPutable(dirR,not cell.isBlack)
+                    self.addPutableList(nextCell,)
+                if nextCell.getBitAroundPutableColor(cell.isBlack) == 0:
+                    self.removePutableList(nextCell)
+            elif nextCell.isBlack == cell.isBlack:
+                if nextCell.getBitAroundPutable() & dir != 0:
+                    pass
+                if cell.getBitAroundPutable() & dirR == 0:
+                    pass
+            else:
+                pass
 
-            if dirInfo == World_Othello.DIR_INFO_EMPTY:
-                if dirInfoR == World_Othello.DIR_INFO_BLOCK:
-                    self.addPutableList(emptyCell,dir)
-                else:
-                    self.removePutableList(emptyCell,dir)
+            # dirInfo, emptyCell = self.checkCellDirectionInfo(cell.aroundCells[dir],dir,isBlack)
+            # dirInfoR, emptyCellR = self.checkCellDirectionInfo(cell.aroundCells[dirR],dirR,isBlack)
+
+            # if dirInfo == World_Othello.DIR_INFO_EMPTY:
+            #     if dirInfoR == World_Othello.DIR_INFO_BLOCK:
+            #         self.addPutableList(emptyCell,dir)
+            #     else:
+            #         self.removePutableList(emptyCell,dir)
             
-            if dirInfoR == World_Othello.DIR_INFO_EMPTY:
-                if dirInfo == World_Othello.DIR_INFO_BLOCK:
-                    self.addPutableList(emptyCellR,dirR)
-                else:
-                    self.removePutableList(emptyCellR,dirR)
+            # if dirInfoR == World_Othello.DIR_INFO_EMPTY:
+            #     if dirInfo == World_Othello.DIR_INFO_BLOCK:
+            #         self.addPutableList(emptyCellR,dirR)
+            #     else:
+            #         self.removePutableList(emptyCellR,dirR)
     
-    def addPutableList(self, cell:Cell, dir):
-        if cell.addPutable(1<<dir):
-            self.putableList.append(cell)
+    def addPutableList(self, cell:Cell, isBlack):
+        putableList = self.blackPutableList if isBlack else self.whitePutableList
+        if cell in putableList:
+            return
+        putableList.append(cell)
+        self.window.blit(self.temp, cell.pos* self.cellSize)
     
-    def removePutableList(self, cell:Cell, dir):
-        if cell.removePutable(1<<dir):
-            self.putableList.remove(cell)
-
+    def removePutableList(self, cell:Cell):
+        self.blackPutableList.remove(cell)
+        self.whitePutableList.remove(cell)
+        if cell.isEmpty:
+            self.window.blit(self.temp2, cell.pos* self.cellSize)
+    
     def changeColor(self, cell: Cell, dir, isChangeToBlack):
-        if cell == None:
-            return World_Othello.DIR_INFO_NONE
+        cell.changeColor(isChangeToBlack)
+        self.updatePutableList(cell)
+        
         if cell.isEmpty:
             return World_Othello.DIR_INFO_EMPTY
         if cell.isBlack == isChangeToBlack:
