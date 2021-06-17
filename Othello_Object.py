@@ -20,9 +20,11 @@ class Cell:
         if isBlack:
             self.bitAroundPutableBlack |= bitInfo
             self.bitAroundPutableWhite &= ~bitInfo
+            return self.bitAroundPutableWhite == 0
         else:
             self.bitAroundPutableWhite |= bitInfo
             self.bitAroundPutableBlack &= ~bitInfo
+            return self.bitAroundPutableBlack == 0
 
     def removeDirectionPutable(self, dir):
         bitInfo = 1<<dir

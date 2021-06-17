@@ -86,6 +86,9 @@ class World_Othello:
             state[4,3] = -1
 
     def put(self, pos, isBlack):
+        self.checkPutable(True)
+        self.checkPutable(False)
+
         cell:Cell = self.cells[pos[0]][pos[1]]
 
         if cell.isEmpty == False:
@@ -106,17 +109,28 @@ class World_Othello:
         cell.bitAroundPutableWhite = 0
         self.updatePutableList(cell)
         self.removePutableList(cell)
+
+        ####체크용#######################
+        self.checkPutable(True)
+        self.checkPutable(False)
+        
+        if changedSum == 0:
+            aa = 0
+        ####################################
+
         return changedSum
 
     def addPutableDirection(self, cell :Cell, dir):
         dirR = 7-dir
         if cell.getBitAroundPutable() &1<<dirR == 0:
-            cell.addDirectionPutable(dirR,cell.isBlack)
+            if cell.addDirectionPutable(dirR,cell.isBlack):
+                self.removePutableListColor(cell,not cell.isBlack)
             nextCell:Cell = cell.aroundCells[dir]
             if nextCell == None:
                 return
             if nextCell.isEmpty:
-                nextCell.addDirectionPutable(dirR,not cell.isBlack)
+                if nextCell.addDirectionPutable(dirR,not cell.isBlack):
+                    self.removePutableListColor(nextCell,cell.isBlack)
                 self.addPutableList(nextCell,not cell.isBlack)
             elif nextCell.isBlack == cell.isBlack:
                 self.addPutableDirection(nextCell,dir)
@@ -142,7 +156,8 @@ class World_Othello:
                 return
             if nextCell.isEmpty:
                 if cell.getBitAroundPutable() & 1<<dirR != 0:
-                    nextCell.addDirectionPutable(dirR,not cell.isBlack)
+                    if nextCell.addDirectionPutable(dirR,not cell.isBlack):
+                        self.removePutableListColor(nextCell,cell.isBlack)
                     self.addPutableList(nextCell,not cell.isBlack)
                     if nextCell.getBitAroundPutableColor(cell.isBlack) == 0:
                         self.removePutableListColor(nextCell,cell.isBlack)
@@ -158,12 +173,42 @@ class World_Othello:
                 self.addPutableDirection(nextCell,dir)
                 self.addPutableDirection(cell,dirR)
     
+    def checkPutableDirection(self, cell : Cell, dir, isBlack):
+        if cell == None or cell.isEmpty:
+            return False
+        
+        if cell.isBlack == cell.isBlack:
+            return True
+
+        return self.checkPutableDirection(cell.aroundCells[dir],dir,isBlack)
+
+    def sibal(self, cell:Cell,isBlack):
+        isPutable = False
+        for dir in range(8):
+            nextCell :Cell= cell.aroundCells[dir]
+            if nextCell == None or nextCell.isEmpty or nextCell.isBlack == isBlack:
+                continue
+            isPutable = self.checkPutableDirection(nextCell,dir,isBlack)
+            if isPutable:
+                break
+            
+        if self.gameTurn != 0:
+            if isPutable == False:
+                a = 0
+
+    def checkPutable(self, isBlack):
+        putableList = self.blackPutableList if isBlack else self.whitePutableList
+        for cell in putableList:
+            self.sibal(cell,isBlack)
+    
     def addPutableList(self, cell:Cell, isBlack):
         putableList = self.blackPutableList if isBlack else self.whitePutableList
         if cell in putableList:
             return
+
+        self.sibal(cell,isBlack)
         putableList.append(cell)
-        if not isBlack:
+        if cell.isEmpty and not isBlack:
             self.window.blit(self.temp, cell.pos* self.cellSize)
     
     def removePutableListColor(self, cell:Cell, isBlack):
@@ -192,7 +237,7 @@ class World_Othello:
         nextCell :Cell= cell.aroundCells[dir]
         assert(nextCell.isEmpty == False)
 
-        if nextCell.isBlack != cell.isBlack:
+        if nextCell.isBlack != isChangeToBlack:
             return self.changeColor(nextCell,dir,isChangeToBlack) +1
         
         return 1
@@ -212,12 +257,13 @@ class World_Othello:
         return changedSum, False
 
     def randomPut(self):
+        self.gameTurn+=1
+
         putableList = self.blackPutableList if self.isBlackTurn else self.whitePutableList
         
         if len(putableList) == 0:
             self.setup()
             return
-
         randCell = random.choice(putableList)
         changedSum = self.put(randCell.pos, self.isBlackTurn)
         if changedSum <= 0:
@@ -227,6 +273,8 @@ class World_Othello:
         self.isBlackTurn = not self.isBlackTurn
     
     def update(self, putPos):
+        self.gameTurn+=1
+
         if putPos == None:
             return
 
