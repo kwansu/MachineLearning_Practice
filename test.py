@@ -26,8 +26,10 @@ while isRunning:
         if event.type == pygame.QUIT:
             isRunning = False
         if event.type == pygame.KEYDOWN:
+            # if event.key == pygame.K_SPACE:
+            #     world.setup()
             if event.key == pygame.K_SPACE:
-                world.setup()
+                world.randomPut()
 
         if event.type == pygame.MOUSEBUTTONUP:
             world.update(list(event.pos))

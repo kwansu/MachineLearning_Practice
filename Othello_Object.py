@@ -5,26 +5,60 @@ class Cell:
         self.pos = np.array(pos)
         self.isEmpty = True
         self.isBlack = False
-        self.bitAroundPutable = 0  #주변 8방향으로 둘 수 있는지를 비트 단위로 저장
+        self.bitAroundPutableBlack = 0  #주변 8방향으로 둘 수 있는지를 비트 단위로 저장
+        self.bitAroundPutableWhite = 0
         self.aroundCells = [None for i in range(8)]
-    
-    #현재 셀에서 주위 8방향에 대해 둘 수 있는 경우를 추가함
-    #이미 추가되어있다면 false, 아니라면 true
-    def addPutable(self, bitPutableInfo)->bool:
-        if bitPutableInfo & self.bitAroundPutable == 0:
-            self.bitAroundPutable+=bitPutableInfo
-            return True
-        
-        return False
 
-    #주위 8방향에 대해 더 이상 둘 수 있는 곳이 없으면 참, 아니면 거짓
-    #정확하게는 가능리스트에서 삭제해야할 경우만 참
-    def removePutable(self, bitPutableInfo) -> bool:
-        if self.bitAroundPutable & bitPutableInfo == 0:
-            return False
-        
-        self.bitAroundPutable -= bitPutableInfo
-        return True if self.bitAroundPutable == 0 else False
+    def getBitAroundPutable(self):
+        return self.bitAroundPutableBlack if self.isBlack else self.bitAroundPutableWhite
+    
+    def getBitAroundPutableColor(self, isBlack):
+        return self.bitAroundPutableWhite if isBlack else self.bitAroundPutableBlack
+
+    def addDirectionPutable(self,dir, isBlack):
+        bitInfo = 1<<dir
+        if isBlack:
+            self.bitAroundPutableBlack |= bitInfo
+            self.bitAroundPutableWhite &= ~bitInfo
+        else:
+            self.bitAroundPutableWhite |= bitInfo
+            self.bitAroundPutableBlack &= ~bitInfo
+
+    def removeDirectionPutable(self, dir):
+        bitInfo = 1<<dir
+        self.bitAroundPutableBlack &= ~bitInfo
+        self.bitAroundPutableWhite &= ~bitInfo
+
+    # def changeColor(self, isChangeToBlack):
+    #     self.isBlack = isChangeToBlack
+    #     self.bitAroundPutableBlack = 0
+    #     self.bitAroundPutableWhite = 0
+    
+    # #현재 셀에서 주위 8방향에 대해 둘 수 있는 경우를 추가함
+    # #이미 추가되어있다면 false, 아니라면 true
+    # def addPutable(self, bitPutableInfo, isBlack)->bool:
+    #     if isBlack:
+    #         if bitPutableInfo & self.bitAroundPutableBlack == 0:
+    #             self.bitAroundPutableBlack+=bitPutableInfo
+    #             return True
+    #     else:
+    #         if bitPutableInfo & self.bitAroundPutableWhite == 0:
+    #             self.bitAroundPutableWhite+=bitPutableInfo
+    #             return True
+    #     return False
+
+    # #주위 8방향에 대해 더 이상 둘 수 있는 곳이 없으면 참, 아니면 거짓
+    # #정확하게는 가능리스트에서 삭제해야할 경우만 참
+    # def removePutable(self, bitPutableInfo, isBlack) -> bool:
+    #     if isBlack:
+    #         if self.bitAroundPutableBlack & bitPutableInfo != 0:
+    #             self.bitAroundPutableBlack -= bitPutableInfo
+    #             return True if self.bitAroundPutableBlack == 0 else False
+    #     else:
+    #         if self.bitAroundPutableWhite & bitPutableInfo != 0:
+    #             self.bitAroundPutableWhite -= bitPutableInfo
+    #             return True if self.bitAroundPutableWhite == 0 else False
+    #     return False
 
     def setAroundCells(self, cells):
         self.__setAroundCells(self.pos[0]-1,self.pos[1]-1,cells,0)
