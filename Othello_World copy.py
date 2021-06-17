@@ -21,6 +21,7 @@ class World_Othello:
         self.cellSize = (int(sideLength/self.cellLineCount),
                          int(sideLength/self.cellLineCount))
 
+        #self.putableList = []
         self.blackPutableList = []
         self.whitePutableList = []
 
@@ -85,6 +86,9 @@ class World_Othello:
             state[4,3] = -1
 
     def put(self, pos, isBlack):
+        self.checkPutable(True)
+        self.checkPutable(False)
+
         cell:Cell = self.cells[pos[0]][pos[1]]
 
         if cell.isEmpty == False:
@@ -96,42 +100,67 @@ class World_Othello:
         # putableList = self.blackPutableList if isBlack else self.whitePutableList
 
         changedSum = 0
+
         for dir in range(0, 8):
-            if cell.getBitAroundPutable() & 1<<dir != 0:
+            if cell.getBitAroundPutableColor(isBlack) & 1<<dir != 0:
                 changedSum += self.changeColor(cell.aroundCells[dir], dir, isBlack)
         
         cell.bitAroundPutableBlack = 0
         cell.bitAroundPutableWhite = 0
         self.updatePutableList(cell)
         self.removePutableList(cell)
+
+        ####체크용#######################
+        self.checkPutable(True)
+        self.checkPutable(False)
+        
+        if changedSum == 0:
+            aa = 0
+        ####################################
+
         return changedSum
 
     def addPutableDirection(self, cell :Cell, dir):
-        dirR = 7-dir
-        if cell.getBitAroundPutable() &1<<dirR == 0:
-            cell.addDirectionPutable(dirR,cell.isBlack)
-            nextCell:Cell = cell.aroundCells[dir]
-            if nextCell == None:
-                return
-            if nextCell.isEmpty:
-                nextCell.addDirectionPutable(dirR,not cell.isBlack)
-                self.removePutableListColor(nextCell,cell.isBlack)
-                self.addPutableList(nextCell,not cell.isBlack)
-            elif nextCell.isBlack == cell.isBlack:
-                self.addPutableDirection(nextCell,dir)
+        cell.updatePutable(dir,cell.isBlack)
+        nextCell :Cell = cell.aroundCells[7-dir]
+        if nextCell == None:
+            return
+        if nextCell.isEmpty:
+            if nextCell.updatePutable(dir,cell.isBlack):
+                self.removePutableListColor(nextCell, cell.isBlack)
+            self.addPutableList(nextCell, not cell.isBlack)
+        elif nextCell.isBlack == cell.isBlack:
+            #미리 검사해서 중복검사를 제거하는게 더 빠를까?
+            if nextCell.getBitAroundPutable() & 1<<dir == 0:
+                self.addPutableDirection(nextCell, dir)
+
+
+        # dirR = 7-dir
+        # if cell.getBitAroundPutable() &1<<dirR == 0:
+        #     if cell.addDirectionPutable(dirR,cell.isBlack):
+        #         self.removePutableListColor(cell,not cell.isBlack)
+        #     nextCell:Cell = cell.aroundCells[dir]
+        #     if nextCell == None:
+        #         return
+        #     if nextCell.isEmpty:
+        #         if nextCell.addDirectionPutable(dirR,not cell.isBlack):
+        #             self.removePutableListColor(nextCell,cell.isBlack)
+        #         self.addPutableList(nextCell,not cell.isBlack)
+        #     elif nextCell.isBlack == cell.isBlack:
+        #         self.addPutableDirection(nextCell,dir)
 
     def removePutableDirection(self, cell:Cell, dir):
-        dirR = 7-dir
-        if cell.getBitAroundPutable() &1<<dirR != 0:
-            cell.removeDirectionPutable(dirR)
-            nextCell:Cell = cell.aroundCells[dir]
-            if nextCell == None:
-                return
-            if nextCell.isEmpty:
-                nextCell.removeDirectionPutable(dirR)
-                self.removePutableListColor(nextCell,not cell.isBlack)
-            elif nextCell.isBlack == cell.isBlack:
-                self.removePutableDirection(nextCell,dir)
+        if cell.getBitAroundPutable() & 1<<dir == 0:
+            return
+        cell.removeDirectionPutable(dir)
+        nextCell:Cell = cell.aroundCells[7-dir]
+        if nextCell == None:
+            return
+        if nextCell.isEmpty:
+            nextCell.removeDirectionPutable(dir)
+            self.removePutableListColor(nextCell,not cell.isBlack)
+        elif nextCell.isBlack == cell.isBlack:
+            self.removePutableDirection(nextCell, 7-dir)
 
     def updatePutableList(self, cell :Cell):
         for dir in range(8):
@@ -140,39 +169,86 @@ class World_Othello:
             if nextCell == None:
                 continue
             if nextCell.isEmpty:
-                if cell.getBitAroundPutable() & 1<<dirR != 0:
-                    nextCell.addDirectionPutable(dirR,not cell.isBlack)
-                    self.addPutableList(nextCell,not cell.isBlack)
-                    if nextCell.getBitAroundPutableColor(cell.isBlack) == 0:
-                        self.removePutableListColor(nextCell,cell.isBlack)
-                else:
+                if nextCell.getBitAroundPutableColor(cell.isBlack) & 1<<dir != 0:
                     nextCell.removeDirectionPutable(dirR)
-                    self.removePutableListColor(nextCell,cell.isBlack)
+                    self.removePutableListColor(cell.isBlack)
+                # if cell.getBitAroundPutable() & 1<<dirR != 0:
+                #     if nextCell.addDirectionPutable(dirR,not cell.isBlack):
+                #         self.removePutableListColor(nextCell,cell.isBlack)
+                #     self.addPutableList(nextCell,not cell.isBlack)
+                #     if nextCell.getBitAroundPutableColor(cell.isBlack) == 0:
+                #         self.removePutableListColor(nextCell,cell.isBlack)
+                # else:
+                #     nextCell.removeDirectionPutable(dirR)
+                #     self.removePutableListColor(nextCell,cell.isBlack)
+                pass
             elif nextCell.isBlack == cell.isBlack:
-                if nextCell.getBitAroundPutable() & 1<<dir != 0:
-                    self.addPutableDirection(cell,dirR)
                 if cell.getBitAroundPutable() & 1<<dirR == 0:
-                    self.removePutableDirection(nextCell,dir)
+                    self.removePutableDirection(nextCell,dirR)
+                if nextCell.getBitAroundPutable() & 1<<dir != 0:
+                    self.addPutableDirection(cell,dir)
+                # if nextCell.getBitAroundPutable() & 1<<dir != 0:
+                #     self.addPutableDirection(cell,dirR)
+                # if cell.getBitAroundPutable() & 1<<dirR == 0:
+                #     self.removePutableDirection(nextCell,dir)
             else:
-                self.addPutableDirection(nextCell,dir)
-                self.addPutableDirection(cell,dirR)
+                self.addPutableDirection(cell, dir)
+                self.addPutableDirection(nextCell,dirR)
+                # self.addPutableDirection(nextCell,dir)
+                # self.addPutableDirection(cell,dirR)
     
-    def addPutableList(self, cell:Cell, isBlack):
+    def checkPutableDirection(self, cell : Cell, dir, isBlack):
+        if cell == None or cell.isEmpty:
+            return False
+        
+        if cell.isBlack == cell.isBlack:
+            return True
+
+        return self.checkPutableDirection(cell.aroundCells[dir],dir,isBlack)
+
+    def sibal(self, cell:Cell,isBlack):
+        isPutable = False
+        for dir in range(8):
+            nextCell :Cell= cell.aroundCells[dir]
+            if nextCell == None or nextCell.isEmpty or nextCell.isBlack == isBlack:
+                continue
+            isPutable = self.checkPutableDirection(nextCell,dir,isBlack)
+            if isPutable:
+                break
+            
+        if self.gameTurn != 0:
+            if isPutable == False:
+                a = 0
+
+    def checkPutable(self, isBlack):
         putableList = self.blackPutableList if isBlack else self.whitePutableList
+        for cell in putableList:
+            self.sibal(cell,isBlack)
+    
+    def addPutableList(self, cell:Cell, isBlackPutable):
+        putableList = self.blackPutableList if isBlackPutable else self.whitePutableList
         if cell in putableList:
             return
+
+        self.sibal(cell,isBlackPutable)
         putableList.append(cell)
-        # if cell.isEmpty and not isBlack:
-        #     self.window.blit(self.temp, cell.pos* self.cellSize)
+        if cell.isEmpty and not isBlackPutable:
+            self.window.blit(self.temp, cell.pos* self.cellSize)
     
-    def removePutableListColor(self, cell:Cell, isBlack):
-        if cell.getBitAroundPutableColor(not isBlack) != 0:
+    def removePutableListColor(self, cell:Cell, isBlackList):
+        if cell.getBitAroundPutableColor(isBlackList) != 0:
             return
-        putableList = self.blackPutableList if isBlack else self.whitePutableList
+        putableList = self.blackPutableList if isBlackList else self.whitePutableList
         if cell in putableList:
             putableList.remove(cell)
-        # if not isBlack and cell.isEmpty:
-        #     self.window.blit(self.temp2, cell.pos* self.cellSize)
+        
+        ########################## Debug
+        if cell.isEmpty == False:
+            a = 10
+
+        if not isBlackList:
+            self.window.blit(self.temp2, cell.pos* self.cellSize)
+        ###############################
 
     def removePutableList(self, cell:Cell):
         if cell in self.blackPutableList:
@@ -181,13 +257,19 @@ class World_Othello:
             self.whitePutableList.remove(cell)
 
     def changeColor(self, cell: Cell, dir, isChangeToBlack):
+        #cell.changeColor(isChangeToBlack)
+        assert(cell.isBlack != isChangeToBlack)
         cell.bitAroundPutableBlack = 0
         cell.bitAroundPutableWhite = 0
         self.drawCell(cell, isChangeToBlack)
         self.updatePutableList(cell)
+        
         nextCell :Cell= cell.aroundCells[dir]
+        assert(nextCell.isEmpty == False)
+
         if nextCell.isBlack != isChangeToBlack:
             return self.changeColor(nextCell,dir,isChangeToBlack) +1
+        
         return 1
 
     def step(self, action, state):

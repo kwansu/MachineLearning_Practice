@@ -10,19 +10,22 @@ class Cell:
         self.aroundCells = [None for i in range(8)]
 
     def getBitAroundPutable(self):
-        return self.bitAroundPutableBlack if self.isBlack else self.bitAroundPutableWhite
+        return self.bitAroundPutableWhite if self.isBlack else self.bitAroundPutableBlack
     
-    def getBitAroundPutableColor(self, isBlack):
-        return self.bitAroundPutableWhite if isBlack else self.bitAroundPutableBlack
+    def getBitAroundPutableColor(self, isPutableBlack):
+        return self.bitAroundPutableBlack if isPutableBlack else self.bitAroundPutableWhite
 
-    def addDirectionPutable(self,dir, isBlack):
+    # dir방향으로 막혀있을 경우만 업데이트를 실행해야한다.
+    def updatePutable(self,dir, isBlockedWhite):
         bitInfo = 1<<dir
-        if isBlack:
-            self.bitAroundPutableBlack |= bitInfo
-            self.bitAroundPutableWhite &= ~bitInfo
-        else:
+        if isBlockedWhite:
             self.bitAroundPutableWhite |= bitInfo
             self.bitAroundPutableBlack &= ~bitInfo
+            return self.bitAroundPutableWhite == 0
+        else:
+            self.bitAroundPutableBlack |= bitInfo
+            self.bitAroundPutableWhite &= ~bitInfo
+            return self.bitAroundPutableBlack == 0
 
     def removeDirectionPutable(self, dir):
         bitInfo = 1<<dir
@@ -74,29 +77,3 @@ class Cell:
         if x < 0 or x >= 8 or y < 0 or y >=8:
             return
         self.aroundCells[dir] = cells[x][y]
-
-    # UP_LEFT = 0b10
-    # UP = 0b100
-    # UP_RIGHT = 0b1000
-    # LEFT = 0b10000
-    # RIGHT = 0b100000
-    # DOWN_LEFT = 0b1000000
-    # DOWN_ = 0b10000000
-    # DOWN_RIGHT = 0b100000000
-
-    # PUT_IMPOSSIBLE = 0
-    # PUT_CAN_BLACK = 1
-    # PUT_CAN_WHITE = 2
-    # PUT_OUT = 3
-
-    # BIT_BLACK = 0b0001
-    # BIT_WHITE = 0b0010
-    # BIT_OUT = 0b0100
-    # BIT_CHANGEABLE = 0b1000
-
-    # BIT_DIR_MASK = 0b1111
-    # BIT_OUT_MASK = 0b01000100010001000100010001000100
-    # BIT_BLACK_MASK = 0b00010001000100010001000100010001
-    # BIT_WHITE_MASK = 0b00100010001000100010001000100010
-
-
