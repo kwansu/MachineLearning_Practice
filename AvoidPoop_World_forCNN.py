@@ -7,8 +7,7 @@ import tensorflow
 
 
 class World_AvoidPoop:
-    def __init__(self, width, height, model: tensorflow.keras.Model) -> None:
-        self.model = model
+    def __init__(self, width, height) -> None:
         self.isPlayig = True
         self.onStep = True
         self.worldTime = 0.0

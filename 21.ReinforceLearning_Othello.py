@@ -1,3 +1,4 @@
+from tensorflow.python.ops.gen_math_ops import square
 from python_simulation.MainPyGame import MainPygame
 from Othello_World import World_Othello as World
 import tensorflow as tf
@@ -7,59 +8,82 @@ import random
 import threading
 
 
-episodeCount = 1000
-discountRate = 0.99
+blackModel = tf.keras.Sequential()
+blackModel.add(tf.keras.layers.Conv2D(8, kernel_size=(1, 1),
+              activation='relu', kernel_initializer='glorot_normal'))
+blackModel.add(tf.keras.layers.Conv2D(64, kernel_size=(3, 3),
+              activation='relu', kernel_initializer='glorot_normal'))
+blackModel.add(tf.keras.layers.Conv2D(192, kernel_size=(3, 3),
+              activation='relu', kernel_initializer='glorot_normal'))
+blackModel.add(tf.keras.layers.Flatten())
+blackModel.add(tf.keras.layers.Dense(512, tf.nn.relu, True, 'glorot_normal'))
+blackModel.add(tf.keras.layers.Dense(64, kernel_initializer='glorot_normal'))
+blackModel.compile(tf.keras.optimizers.Adam(learning_rate=0.001), loss='mse')
 
-mainModel = tf.keras.Sequential()
-mainModel.add(tf.keras.layers.Conv2D(16, kernel_size=(5, 5), padding='SAME',
-              activation='relu', kernel_initializer='glorot_normal'))
-mainModel.add(tf.keras.layers.Conv2D(32, kernel_size=(3, 3), padding='SAME',
-              activation='relu', kernel_initializer='glorot_normal'))
-mainModel.add(tf.keras.layers.Flatten())
-mainModel.add(tf.keras.layers.Dense(256, tf.nn.relu, True, 'glorot_normal'))
-mainModel.add(tf.keras.layers.Dense(64, kernel_initializer='glorot_normal'))
-mainModel.compile(tf.keras.optimizers.Adam(learning_rate=0.001), loss='mse')
-targetModel = tf.keras.models.clone_model(mainModel)
+blackTargetModel = tf.keras.models.clone_model(blackModel)
+whiteModel = tf.keras.models.clone_model(blackModel)
+whiteModel.compile(tf.keras.optimizers.Adam(learning_rate=0.001), loss='mse')
+whiteTargetModel = tf.keras.models.clone_model(blackModel)
 
 bufferSize = 10000
-buffer = collections.deque(maxlen=bufferSize)
+blackBuffer = collections.deque(maxlen=bufferSize)
+whiteBuffer = collections.deque(maxlen=bufferSize)
 
 statesBuffer = np.zeros([bufferSize+1, 8, 8, 1])
 batchSize = 64
-targetInterval = 10
-targetCount = targetInterval-batchSize
+# targetInterval = 10
+# targetCount = targetInterval-batchSize
 
 lineLenth = 320
 simulation = MainPygame(lineLenth, lineLenth, speed=1, fps=5)
-world = World(lineLenth,simulation.window, targetModel)
+world = World(lineLenth,simulation.window)
 
 def runSimulation():
     simulation.run(world)
-
 
 simulationThread = threading.Thread(target=runSimulation)
 simulationThread.start()
 
 stateIndex = 0
 
+episodeCount = 1000
+discountRate = 0.99
+reciprocal = 1.0 / episodeCount**2
+
 for i in range(episodeCount):
-    e = 1. / ((i / 5) + 1)
+    e = reciprocal * ((episodeCount - i)**2)
     isTerminal = False
-    stepCount = 0
-    rewardSum = 0
+    blackRewardSum = 0
+    whiteRewardSum = 0
+    # isBlackWin = False
+    isBlackTurn = True
     world.setup(statesBuffer[stateIndex])
 
     while not isTerminal:
         state = statesBuffer[stateIndex]
         nextState = statesBuffer[stateIndex+1]
+        if isBlackTurn:
+            buffer = blackBuffer
+            model = blackModel
+            targetModel = blackTargetModel
+        else:
+            buffer = whiteBuffer
+            model = whiteModel
+            targetModel = whiteTargetModel
 
-        if random.random() < e:
+        r = random.random()
+        if r < e**4:
             action = random.randrange(0, 64)
+            actionPos = (action&0b111,action>>3)
+        elif r < e:  
+            actionPos = world.getRandomPutablePos()
+            action = int(actionPos[0] | (actionPos[1]<<3))
         else:
             x = np.reshape(state, [1, 8, 8, 1])
-            action = np.argmax(mainModel.predict(x))
+            action = np.argmax(model.predict(x))
+            actionPos = (action&0b111,action>>3)
 
-        reward, isTerminal = world.step(action, nextState)
+        reward, isTerminal = world.step(actionPos, nextState)
 
         buffer.append([state, action, reward, nextState, isTerminal])
 
@@ -74,28 +98,28 @@ for i in range(episodeCount):
             Q_target = rewards + discountRate * \
                 np.max(targetModel.predict(nextStates), axis=1) * ~terminals
 
-            y = mainModel.predict(states)
+            y = model.predict(states)
             y[np.arange(len(states)), actions] = Q_target
 
-            mainModel.fit(states, y, batchSize, verbose=0)
-
-        if targetCount > targetInterval:
-            targetCount = 0
-            targetModel.set_weights(mainModel.get_weights())
+            model.fit(states, y, batchSize, verbose=0)
 
         stateIndex += 1
         if stateIndex >= bufferSize:
             stateIndex = 0
+        
+        if isBlackTurn:
+            blackRewardSum += reward
+        else:
+            whiteRewardSum += reward
 
-        stepCount += 1
-        targetCount += 1
-        rewardSum += reward
+        isBlackTurn = not isBlackTurn
 
-        if (stepCount > 2000):
-            break
+    if len(blackBuffer) > batchSize + 1:
+        blackTargetModel.set_weights(blackModel.get_weights())
+    if len(whiteBuffer) > batchSize + 1:
+        whiteTargetModel.set_weights(whiteModel.get_weights())
+    print("episode: {}  black rewardSum: {}  white rewardSum: {}".format(i, blackRewardSum, whiteRewardSum))
 
-    print("episode: {}  steps: {}  rewardSum: {}".format(i, stepCount, rewardSum))
 
-
-mainModel.save('model/othello.h5')
+blackModel.save('model/othello.h5')
 simulationThread.join()

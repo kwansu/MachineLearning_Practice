@@ -9,7 +9,7 @@ width = 300
 height = 400
 
 model = tf.keras.models.load_model('model/avoidPoop_cnn.h5')
-world = World(width, height, model)
+world = World(width, height)
 
 
 def runSimulation():

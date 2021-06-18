@@ -7,13 +7,13 @@ import tensorflow
 
 
 class World_Othello:
-    def __init__(self, sideLength, window, model: tensorflow.keras.Model) -> None:
-        self.model = model
+    def __init__(self, sideLength, window) -> None:
+        self.state = None
         self.window = window
-        self.worldTime = 0.0
-        self.stepInterval = 0.1
+        #self.worldTime = 0.0
+        #self.stepInterval = 0.1
+        #self.gameTurn = 0
         self.cellLineCount = 8
-        self.gameTurn = 0
         self.maxGameTurn = self.cellLineCount**2 - 4
         self.isBlackTurn = True
         self.width = sideLength
@@ -30,10 +30,10 @@ class World_Othello:
             'python_simulation/othello_stone_white.png')
         self.sprite_blakc = pygame.image.load(
             'python_simulation/othello_stone_black.png')
-        self.temp = pygame.image.load(
-            'python_simulation/othello_temp.png')
-        self.temp2 = pygame.image.load(
-            'python_simulation/othello_temp2.png')
+        # self.temp = pygame.image.load(
+        #     'python_simulation/othello_temp.png')
+        # self.temp2 = pygame.image.load(
+        #     'python_simulation/othello_temp2.png')
 
         self.cells = tuple(tuple(Cell((col, row)) for row in range(
             self.cellLineCount)) for col in range(self.cellLineCount))
@@ -58,9 +58,10 @@ class World_Othello:
         else:
             self.window.blit(self.sprite_white, cell.pos* self.cellSize)
 
-    def setup(self, state = None):
-        self.worldTime = 0
-        self.gameTurn = 0
+    def setup(self, state):
+        self.state = state
+        #self.worldTime = 0
+        #self.gameTurn = 0
         self.isBlackTurn = True
         self.blackPutableList.clear()
         self.whitePutableList.clear()
@@ -77,12 +78,11 @@ class World_Othello:
         self.put((3,4), True)
         self.put((4,3), True)
 
-        if state != None:
-            state.fill(0)
-            state[3,3] = 1
-            state[4,4] = 1
-            state[3,4] = -1
-            state[4,3] = -1
+        state.fill(0)
+        state[3,3] = 1
+        state[4,4] = 1
+        state[3,4] = -1
+        state[4,3] = -1
 
     def put(self, pos, isBlack):
         cell:Cell = self.cells[pos[0]][pos[1]]
@@ -181,6 +181,7 @@ class World_Othello:
             self.whitePutableList.remove(cell)
 
     def changeColor(self, cell: Cell, dir, isChangeToBlack):
+        self.state[cell.pos[0], cell.pos[1]] = 1 if isChangeToBlack else 2
         cell.bitAroundPutableBlack = 0
         cell.bitAroundPutableWhite = 0
         self.drawCell(cell, isChangeToBlack)
@@ -190,55 +191,83 @@ class World_Othello:
             return self.changeColor(nextCell,dir,isChangeToBlack) +1
         return 1
 
-    def step(self, action, state):
-        state[action[0], action[1]] = 1 if self.isBlackTurn else 2
-        changedSum = self.put(action, self.isBlackTurn)
+    def calculateCount(self):
+        blackCount = 0
+        whiteCount = 0
+        for cols in self.cells:
+            for cell in cols:
+                if cell.isEmpty == False:
+                    if cell.isBlack:
+                        blackCount += 1
+                    else:
+                        whiteCount += 1
+        
+        return blackCount, whiteCount
+    
+    def getRandomPutablePos(self):
+        putableList = self.blackPutableList if self.isBlackTurn else self.whitePutableList
+        return random.choice(putableList).pos
+
+    def step(self, actionPos, state):
+        self.state = state
+        state[actionPos[0], actionPos[1]] = 1 if self.isBlackTurn else -1
+        changedSum = self.put(actionPos, self.isBlackTurn)
         if changedSum <= 0:
             return -100, True
 
         self.isBlackTurn = not self.isBlackTurn
-        self.gameTurn += 1
+        #self.gameTurn += 1
 
-        if self.gameTurn >= self.maxGameTurn:
-            return 100+changedSum, True
+        putableList = self.blackPutableList if self.isBlackTurn else self.whitePutableList
+        if len(putableList) == 0:
+            blackCount,whiteCount = self.calculateCount()
+            if self.isBlackTurn:
+                if blackCount < whiteCount:
+                    changedSum += 100
+            else:
+                if blackCount > whiteCount:
+                    changedSum += 100
+            return changedSum, True
 
         return changedSum, False
 
     def randomPut(self):
-        self.gameTurn+=1
+        #self.gameTurn+=1
 
         putableList = self.blackPutableList if self.isBlackTurn else self.whitePutableList
         
         if len(putableList) == 0:
-            self.setup()
+            self.setup(self.state)
             return
         randCell = random.choice(putableList)
         changedSum = self.put(randCell.pos, self.isBlackTurn)
         if changedSum <= 0:
-            self.setup()
+            self.setup(self.state)
             return
         
         self.isBlackTurn = not self.isBlackTurn
-    
-    def update(self, putPos):
-        self.gameTurn+=1
 
-        if putPos == None:
-            return
-
-        if putPos[0] < 0 or putPos[1] < 0 or putPos[0] > self.width or putPos[1] > self.height:
-            return
-        
-        putPos[0] = int(putPos[0]/self.cellSize[0])
-        putPos[1] = int(putPos[1]/self.cellSize[1])
-
+    def putCell(self, putPos):
         changedSum = self.put(putPos, self.isBlackTurn)
         if changedSum <= 0:
-            self.setup()
+            self.setup(self.state)
             return
 
         self.isBlackTurn = not self.isBlackTurn
-
-        if self.gameTurn >= self.maxGameTurn:
-            self.setup()
+        putableList = self.blackPutableList if self.isBlackTurn else self.whitePutableList
+        if len(putableList) == 0:
+            self.setup(self.state)
             return
+    
+    def putPlayer(self, pos):
+        #self.gameTurn+=1
+        if pos == None:
+            return
+        if pos[0] < 0 or pos[1] < 0 or pos[0] > self.width or pos[1] > self.height:
+            return
+        
+        putPos = (int(pos[0]/self.cellSize[0]),int(pos[1]/self.cellSize[1]))
+        self.putCell(putPos)
+    
+    def update(self, winodw, deltaTime):
+        pass
