@@ -5,8 +5,6 @@ import numpy as np
 import collections
 import random
 import threading
-from tensorflow.python.client import device_lib
-device_lib.list_local_devices()
 
 #with tf.device("/gpu:0"):
 episodeCount = 1000
@@ -26,7 +24,7 @@ continueCount = 0  # 몇번 연속 기준을 통과했는지 판단용
 targetCount = targetInterval-batchSize
 width = 300
 height = 400
-world = World(width, height, targetModel)
+world = World(width, height)
 bufferSize = 10000
 buffer = collections.deque(maxlen=bufferSize)
 statesBuffer = np.zeros([bufferSize+1, 30, 30, 1])
