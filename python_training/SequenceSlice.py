@@ -11,4 +11,3 @@ print(l)
 
 del l[-3:]
 print(l)
-
