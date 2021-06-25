@@ -1,7 +1,7 @@
 import numpy as np
 
 def numerical_derivative(expression, x):
-    limitDistance = 0.0001
+    limitDistance = 0.0001 #1e-4
     result = np.zeros_like(x)
     iterator = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
 
