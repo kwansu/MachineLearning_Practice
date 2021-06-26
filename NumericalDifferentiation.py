@@ -8,7 +8,7 @@ def numerical_derivative(expression, x):
     while not iterator.finished:
         iterIndex = iterator.multi_index
         tempCopy = x[iterIndex]
-        limitDistance = 1e-4 #* tempCopy
+        limitDistance = 1e-4 * tempCopy
 
         x[iterIndex] = float(tempCopy) + limitDistance
         plusDx = expression(x)

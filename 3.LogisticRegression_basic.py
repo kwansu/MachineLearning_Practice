@@ -24,14 +24,13 @@ def costFunction(x, w, b):
 W = np.random.random(1).reshape([1,1])
 b = np.random.random(1)
 
-for i in range(1000):
+for i in range(10000):
     print('epoch %d, cost : %f' %
           (i, costFunction(x_data_normalized, W, b)))
     W -= (0.01 * numerical_derivative(lambda t: costFunction(x_data_normalized, t, b), W))
     b -= (0.01 * numerical_derivative(lambda t: costFunction(x_data_normalized, W, t), b))
 
 print("W : {}, b : {}".format(W, b))
-
 
 def predict(x):
     y = hypothesisFunction(x, W, b)

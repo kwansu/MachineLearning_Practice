@@ -32,12 +32,14 @@ train_data = train_data.dropna(axis=0)
 # 판다스 제공하는 범주를 자동으로 나눠즈는 함수를 사용하여 문자를 손쉽게 변형
 train_data = pandas.get_dummies(train_data, drop_first=True)
 
-# 데이터 표준화
-train_data_normalized = (train_data - train_data.mean()) / train_data.std()
-print(train_data_normalized.head())
+# # 데이터 표준화
+# train_data_normalized = (train_data - train_data.mean()) / train_data.std()
+# print(train_data_normalized.head())
 
-x_data = train_data_normalized.drop("Survived", axis=1).values
-y_data = train_data_normalized["Survived"].values
+x_data = train_data.drop("Survived", axis=1).values
+x_data = (x_data - np.mean(x_data,axis=0)) / np.std(x_data,axis=0)
+y_data = train_data["Survived"].values
+y_data = np.reshape(y_data, [len(y_data), 1])
 ##########################################################################
 
 
@@ -54,39 +56,35 @@ def costFunction(x, w, b):
     return -np.sum(temp)
 
 
-W = np.array([1.])
-W = np.reshape(W, [1, 1])
-b = np.array([1.])
+W = np.random.random(len(x_data[0])).reshape([len(x_data[0]),1])
+b = np.random.random(1)
+learningRate = 0.001
+
+for i in range(1001):
+    if i%100 == 0:
+        print('epoch %d, cost : %f' %(i, costFunction(x_data, W, b)))
+
+    W -= (learningRate * numerical_derivative(lambda t: costFunction(x_data, t, b), W))
+    b -= (learningRate * numerical_derivative(lambda t: costFunction(x_data, W, t), b))
+
+#print("W : {}, b : {}".format(W, b))
 
 
-def predict(x):
-    y = hypothesisFunction(x, W, b)
-    iterator = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
-    _x = np.reshape(x_data, [11, 1])
-    sameCount = 0
+# def predict(x):
+#     y = hypothesisFunction(x, W, b)
+#     iterator = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
+#     _x = np.reshape(x_data, [, 1])
+#     sameCount = 0
 
-    while not iterator.finished:
-        iterIndex = iterator.multi_index
-        predic_value = True if y[iterIndex] >= 0.5 else False
-        print("x : {} , predict : {}".format(_x[iterIndex], predic_value))
-        if predic_value == bool(y_data[iterIndex]):
-            sameCount += 1
-        iterator.iternext()
+#     while not iterator.finished:
+#         iterIndex = iterator.multi_index
+#         predic_value = True if y[iterIndex] >= 0.5 else False
+#         print("x : {} , predict : {}".format(_x[iterIndex], predic_value))
+#         if predic_value == bool(y_data[iterIndex]):
+#             sameCount += 1
+#         iterator.iternext()
 
-    print("accuracy : %f" % (sameCount / y_data.size))
+#     print("accuracy : %f" % (sameCount / y_data.size))
 
 
-learningRate = 0.01
-
-for i in range(1000):
-    print('epoch %d, cost : %f' %
-          (i, costFunction(x_data_normalization, W, b)))
-    t1 = numerical_derivative(
-        lambda t: costFunction(x_data_normalization, t, b), W)
-    W -= learningRate * t1
-    b -= learningRate * \
-        numerical_derivative(lambda t: costFunction(
-            x_data_normalization, W, t), b)
-
-print("W : {}, b : {}".format(W, b))
-predict(x_data_normalization)
+#predict(x_data)
