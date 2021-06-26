@@ -1,5 +1,4 @@
 import numpy as np
-import math
 
 def numerical_derivative(expression, x):
     result = np.zeros_like(x)
@@ -24,7 +23,4 @@ def numerical_derivative(expression, x):
 
 
 def sigmoidFunction(f):
-    # temp2 = math.e ** (-f)
-    # temp = 1/(1+temp2)
-    # return temp
     return 1 / (1+np.exp(-f))

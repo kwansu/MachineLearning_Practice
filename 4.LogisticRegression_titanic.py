@@ -1,44 +1,55 @@
 from NumericalDifferentiation import*
 import pandas
 
-###########################데이터 전처리##############################
+
+################################데이터 전처리#################################
+def preprocessData(data, isTrain = True):
+    # 안쓰는 항목 id, 이름과 70% 이상이 n/a인 carbin도 제외한다.
+    data = data.drop(["PassengerId", "Name", "Cabin", "Ticket"], axis=1)
+
+    # print(data.describe())
+
+    if isTrain:
+        # 나이가 없는 사람들의 나이를 각 성별의과 생존 여부로 분류해서 평균으로 한다.
+        # 생존 여부에 영향을 최대한 줄이기 위해 생존 여부별로 나누어야한다.
+        classifyAge = lambda data, survived, sex: data[(data["Survived"] == survived) & (data["Sex"] == sex)]["Age"]
+
+        age_mean_survived_male = classifyAge(data, 1, "male").mean()
+        age_mean_dead_male = classifyAge(data, 0, "male").mean()
+        age_mean_survived_female = classifyAge(data, 1, "female").mean()
+        age_mean_dead_female = classifyAge(data, 0, "female").mean()
+
+        age1 = classifyAge(data, 1, "male").fillna(age_mean_survived_male, axis=0)
+        age2 = classifyAge(data, 0, "male").fillna(age_mean_dead_male, axis=0)
+        age3 = classifyAge(data, 1, "female").fillna(age_mean_survived_female, axis=0)
+        age4 = classifyAge(data, 0, "female").fillna(age_mean_dead_female, axis=0)
+        data["Age"] = pandas.concat([age1, age2, age3, age4], axis=0)
+    else:
+        mean = data["Age"].mean()
+        data["Age"] = data["Age"].fillna(mean, axis=0)
+
+    # 예외가 단 2개만 존재하는 embarked도 삭제한다.
+    data = data.dropna(axis=0)
+
+    # data['Sex'] = data['Sex'].apply(lambda x: 1 if x == 'Male' else 0)
+    # 판다스 제공하는 범주를 자동으로 나눠즈는 함수를 사용하여 문자를 손쉽게 변형
+    data = pandas.get_dummies(data, drop_first=True)
+
+    # # 데이터 표준화
+    # train_data_normalized = (data - data.mean()) / data.std()
+    # print(train_data_normalized.head())
+
+    return data
+
+
 # kaggle의 타이타닉 생존자 문제에 대한 데이터이다.
-train_data = pandas.read_csv("data/titanic_train.csv")
+data_train = pandas.read_csv("data/titanic_train.csv")
+data_test = pandas.read_csv("data/titanic_test.csv")
 
-# 안쓰는 항목 id, 이름과 70% 이상이 n/a인 carbin도 제외한다.
-train_data = train_data.drop(["PassengerId", "Name", "Cabin", "Ticket"], axis=1)
-
-# 나이가 없는 사람들의 나이를 각 성별의과 생존 여부로 분류해서 평균으로 한다.
-# 생존 여부에 영향을 최대한 줄이기 위해 생존 여부별로 나누어야한다.
-classifyAge = lambda data, survived, sex: data[(data["Survived"] == survived) & (data["Sex"] == sex)]["Age"]
-
-ageMean_survivedMale = classifyAge(train_data, 1, "male").mean()
-ageMean_deadMale = classifyAge(train_data, 0, "male").mean()
-ageMean_survivedFemale = classifyAge(train_data, 1, "female").mean()
-ageMean_deadFemale = classifyAge(train_data, 0, "female").mean()
-
-age1 = classifyAge(train_data, 1, "male").fillna(ageMean_survivedMale, axis=0)
-age2 = classifyAge(train_data, 0, "male").fillna(ageMean_deadMale, axis=0)
-age3 = classifyAge(train_data, 1, "female").fillna(
-    ageMean_survivedFemale, axis=0)
-age4 = classifyAge(train_data, 0, "female").fillna(ageMean_deadFemale, axis=0)
-
-train_data["Age"] = pandas.concat([age1, age2, age3, age4], axis=0)
-
-# 예외가 단 2개만 존재하는 embarked도 삭제한다.
-train_data = train_data.dropna(axis=0)
-
-# train_data['Sex'] = train_data['Sex'].apply(lambda x: 1 if x == 'Male' else 0)
-# 판다스 제공하는 범주를 자동으로 나눠즈는 함수를 사용하여 문자를 손쉽게 변형
-train_data = pandas.get_dummies(train_data, drop_first=True)
-
-# # 데이터 표준화
-# train_data_normalized = (train_data - train_data.mean()) / train_data.std()
-# print(train_data_normalized.head())
-
-x_data = train_data.drop("Survived", axis=1).values
+data_train_preprocessed = preprocessData(data_train)
+x_data = data_train_preprocessed.drop("Survived", axis=1).values
 x_data = (x_data - np.mean(x_data,axis=0)) / np.std(x_data,axis=0)
-y_data = train_data["Survived"].values
+y_data = data_train_preprocessed["Survived"].values
 y_data = np.reshape(y_data, [len(y_data), 1])
 ##########################################################################
 
@@ -56,35 +67,42 @@ def costFunction(x, w, b):
     return -np.sum(temp)
 
 
-W = np.random.random(len(x_data[0])).reshape([len(x_data[0]),1])
+def predict(x):
+    y = hypothesisFunction(x,w,b)
+    iterator = np.nditer(y, flags=['multi_index'], op_flags=['readwrite'])
+    correctCount = 0
+
+    while not iterator.finished:
+        iterIndex = iterator.multi_index
+        _y = y_data[iterIndex]
+        if (_y == 1 if y[iterIndex] >= 0.5 else _y == 0):
+            correctCount += 1
+        iterator.iternext()
+    
+    print("accuracy : %f" %(correctCount/y.size))
+
+
+w = np.random.random(len(x_data[0])).reshape([len(x_data[0]),1])
 b = np.random.random(1)
 learningRate = 0.001
 
 for i in range(1001):
     if i%100 == 0:
-        print('epoch %d, cost : %f' %(i, costFunction(x_data, W, b)))
+        print('epoch %d, cost : %f' %(i, costFunction(x_data, w, b)))
 
-    W -= (learningRate * numerical_derivative(lambda t: costFunction(x_data, t, b), W))
-    b -= (learningRate * numerical_derivative(lambda t: costFunction(x_data, W, t), b))
+    w -= (learningRate * numerical_derivative(lambda t: costFunction(x_data, t, b), w))
+    b -= (learningRate * numerical_derivative(lambda t: costFunction(x_data, w, t), b))
 
-#print("W : {}, b : {}".format(W, b))
-
-
-# def predict(x):
-#     y = hypothesisFunction(x, W, b)
-#     iterator = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
-#     _x = np.reshape(x_data, [, 1])
-#     sameCount = 0
-
-#     while not iterator.finished:
-#         iterIndex = iterator.multi_index
-#         predic_value = True if y[iterIndex] >= 0.5 else False
-#         print("x : {} , predict : {}".format(_x[iterIndex], predic_value))
-#         if predic_value == bool(y_data[iterIndex]):
-#             sameCount += 1
-#         iterator.iternext()
-
-#     print("accuracy : %f" % (sameCount / y_data.size))
+predict(x_data)
 
 
-#predict(x_data)
+# test
+data_test_preprocessed = preprocessData(data_test,False)
+x_test = data_test_preprocessed.values
+x_test = (x_test - np.mean(x_test,axis=0)) / np.std(x_test,axis=0)
+
+y = hypothesisFunction(x_test,w,b)
+num = 0
+for value in y:
+    #print("{} : {}".format(num, 'survive' if value>=0.5 else 'dead'))
+    num += 1

@@ -21,32 +21,32 @@ def costFunction(x, w, b):
     return - np.sum(y_data*np.log(h+delta) + (1-y_data)*np.log(1-h+delta))
 
 
-W = np.random.random(1).reshape([1,1])
+w = np.random.random(1).reshape([1, 1])
 b = np.random.random(1)
 
-for i in range(10000):
-    print('epoch %d, cost : %f' %
-          (i, costFunction(x_data_normalized, W, b)))
-    W -= (0.01 * numerical_derivative(lambda t: costFunction(x_data_normalized, t, b), W))
-    b -= (0.01 * numerical_derivative(lambda t: costFunction(x_data_normalized, W, t), b))
+for i in range(10001):
+    if i % 100 == 0:
+        print('epoch %d, cost : %f' % (i, costFunction(x_data_normalized, w, b)))
+    w -= (0.01 * numerical_derivative(lambda t: costFunction(x_data_normalized, t, b), w))
+    b -= (0.01 * numerical_derivative(lambda t: costFunction(x_data_normalized, w, t), b))
 
-print("W : {}, b : {}".format(W, b))
+print("w : {}, b : {}".format(w, b))
 
 def predict(x):
-    y = hypothesisFunction(x, W, b)
+    y = hypothesisFunction(x, w, b)
     iterator = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
     _x = np.reshape(x_data, [11, 1])
-    sameCount = 0
+    correctCount = 0
 
     while not iterator.finished:
         iterIndex = iterator.multi_index
         predic_value = True if y[iterIndex] >= 0.5 else False
         print("x : {} , predict : {}".format(_x[iterIndex], predic_value))
         if predic_value == bool(y_data[iterIndex]):
-            sameCount += 1
+            correctCount += 1
         iterator.iternext()
 
-    print("accuracy : %f" % (sameCount / y_data.size))
+    print("accuracy : %f" % (correctCount / y_data.size))
 
 
 predict(x_data_normalized)
