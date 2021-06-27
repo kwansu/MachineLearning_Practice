@@ -23,7 +23,7 @@ def crossentropy(P):
 W = np.random.random((1, 4))
 B = np.random.random(4)
 learning_rate = 0.01
-def cost(_x, _w, _b): return crossentropy((hypothesis(_x, _w, _b)))
+cost = lambda _x, _w, _b: crossentropy((hypothesis(_x, _w, _b)))
 x_data_normalized = (x_data - np.mean(x_data)) / np.std(x_data)
 
 for i in range(10001):
