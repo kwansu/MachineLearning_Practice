@@ -54,44 +54,45 @@ y_data = np.reshape(y_data, [len(y_data), 1])
 ##########################################################################
 
 
-def hypothesisFunction(x, w, b):
-    g = np.dot(x, w) + b
-    temp = sigmoidFunction(g)
-    return temp
+def sigmoid(z):
+    return 1 / (1+np.exp(-z))
 
 
-def costFunction(x, w, b):
-    h = hypothesisFunction(x, w, b)
+def hypothesis(X, W, b):
+    g = np.dot(X, W) + b
+    return sigmoid(g)
+
+
+def binaryCrossentropy(p):
     delta = 1e-7
-    temp = y_data*np.log(h+delta) + (1-y_data)*np.log(1-h+delta)
-    return -np.sum(temp)
+    return -np.sum(y_data*np.log(p+delta) + (1-y_data)*np.log(1-p+delta))
 
 
-def predict(x):
-    y = hypothesisFunction(x,w,b)
-    iterator = np.nditer(y, flags=['multi_index'], op_flags=['readwrite'])
+def predict(X):
+    Y = hypothesis(X,W,b)
+    iterator = np.nditer(Y, flags=['multi_index'], op_flags=['readwrite'])
     correctCount = 0
 
     while not iterator.finished:
         iterIndex = iterator.multi_index
         _y = y_data[iterIndex]
-        if (_y == 1 if y[iterIndex] >= 0.5 else _y == 0):
+        if (_y == 1 if Y[iterIndex] >= 0.5 else _y == 0):
             correctCount += 1
         iterator.iternext()
     
-    print("accuracy : %f" %(correctCount/y.size))
+    print("accuracy : %f" %(correctCount/Y.size))
 
 
-w = np.random.random(len(x_data[0])).reshape([len(x_data[0]),1])
+W = np.random.random((len(x_data[0]), 1))
 b = np.random.random(1)
 learningRate = 0.001
+cost = lambda _x,_w,_b: binaryCrossentropy((hypothesis(_x,_w,_b)))
 
 for i in range(1001):
     if i%100 == 0:
-        print('epoch %d, cost : %f' %(i, costFunction(x_data, w, b)))
-
-    w -= (learningRate * numerical_derivative(lambda t: costFunction(x_data, t, b), w))
-    b -= (learningRate * numerical_derivative(lambda t: costFunction(x_data, w, t), b))
+        print('epoch %d, cost : %f' %(i, cost(x_data, W, b)))
+    W -= (learningRate * numerical_derivative(lambda t: cost(x_data, t, b), W))
+    b -= (learningRate * numerical_derivative(lambda t: cost(x_data, W, t), b))
 
 predict(x_data)
 
@@ -101,7 +102,7 @@ data_test_preprocessed = preprocessData(data_test,False)
 x_test = data_test_preprocessed.values
 x_test = (x_test - np.mean(x_test,axis=0)) / np.std(x_test,axis=0)
 
-y = hypothesisFunction(x_test,w,b)
+y = hypothesis(x_test,W,b)
 num = 0
 for value in y:
     #print("{} : {}".format(num, 'survive' if value>=0.5 else 'dead'))

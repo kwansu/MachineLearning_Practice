@@ -20,7 +20,3 @@ def numerical_derivative(expression, x):
         iterator.iternext()
         
     return result
-
-
-def sigmoidFunction(f):
-    return 1 / (1+np.exp(-f))

@@ -10,30 +10,35 @@ y_data = np.array([(1. if element else 0.) for element in y_data])
 y_data = np.reshape(y_data, [len(y_data), 1])
 
 
-def hypothesisFunction(x, w, b):
+def sigmoid(z):
+    return 1 / (1+np.exp(-z))
+
+
+def hypothesis(x, w, b):
     g = np.dot(x, w) + b
-    return sigmoidFunction(g)
+    return sigmoid(g)
 
 
-def costFunction(x, w, b):
-    h = hypothesisFunction(x, w, b)
+def binaryCrossentropy(p):
     delta = 1e-7
-    return - np.sum(y_data*np.log(h+delta) + (1-y_data)*np.log(1-h+delta))
+    return -np.sum(y_data*np.log(p+delta) + (1-y_data)*np.log(1-p+delta))
 
 
-w = np.random.random(1).reshape([1, 1])
+w = np.random.random((1, 1))
 b = np.random.random(1)
+cost = lambda _x,_w,_b: binaryCrossentropy((hypothesis(_x,_w,_b)))
 
 for i in range(10001):
     if i % 100 == 0:
-        print('epoch %d, cost : %f' % (i, costFunction(x_data_normalized, w, b)))
-    w -= (0.01 * numerical_derivative(lambda t: costFunction(x_data_normalized, t, b), w))
-    b -= (0.01 * numerical_derivative(lambda t: costFunction(x_data_normalized, w, t), b))
+        print('epoch %d, cost : %f' %(i, cost(x_data_normalized, w, b)))
+    w -= (0.01 * numerical_derivative(lambda t: cost(x_data_normalized, t, b), w))
+    b -= (0.01 * numerical_derivative(lambda t: cost(x_data_normalized, w, t), b))
 
 print("w : {}, b : {}".format(w, b))
 
+
 def predict(x):
-    y = hypothesisFunction(x, w, b)
+    y = hypothesis(x, w, b)
     iterator = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
     _x = np.reshape(x_data, [11, 1])
     correctCount = 0

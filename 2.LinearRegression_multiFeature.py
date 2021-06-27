@@ -5,27 +5,27 @@ loadedData = np.loadtxt('data/linear_multiFeature.csv', delimiter=',', dtype=np.
 x_data = loadedData[:, 0:-1]
 y_data = loadedData[:, [-1]]
 
-def hypothesisFunction(x, W, b):
+def hypothesis(x, W, b):
     return np.dot(x, W) + b
 
-def costFunction(x, W,b):
-    predict = hypothesisFunction(x,W,b)
-    temp = (y_data - predict)**2
-    return np.sum(temp)
+def meanSquaredError(y):
+    return sum((y_data - y)**2)
 
-W = np.random.random(3)
-W = np.reshape(W,[3,1])
-b = np.random.random(1)
 
 def predict(x):
-    y = hypothesisFunction(x,W,b)
+    y = hypothesis(x,W,b)
     print("predict {} : {}".format(x, y))
 
-for i in range(1000):
-    print('cost : %f' % costFunction(x_data,W,b))
-    t1 =  numerical_derivative(lambda t:costFunction(x_data,t,b),W)
-    W -= 0.0000001 * t1
-    b -= 0.0000001 *numerical_derivative(lambda t:costFunction(x_data,W,t),b)
+
+W = np.random.random((3,1))
+b = np.random.random(1)
+cost = lambda _x,_w,_b: meanSquaredError(hypothesis(_x,_w,_b))
+
+for i in range(10001):
+    if i%100 == 0:
+        print('ephoc %d, cost : %f'  %(i, cost(x_data,W,b)))
+    W -= 0.000001 * numerical_derivative(lambda t:cost(x_data,t,b),W)
+    b -= 0.000001 * numerical_derivative(lambda t:cost(x_data,W,t),b)
 
 print("W : {}, b : {}".format(W, b))
-predict((90,90,90))
+print("x : (90,90,90), predict : %f" % hypothesis((90,90,90),W,b))
