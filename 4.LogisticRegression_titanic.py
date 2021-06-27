@@ -54,13 +54,13 @@ y_data = np.reshape(y_data, [len(y_data), 1])
 ##########################################################################
 
 
-def sigmoid(z):
+def activateSigmoid(z):
     return 1 / (1+np.exp(-z))
 
 
 def hypothesis(X, W, b):
     g = np.dot(X, W) + b
-    return sigmoid(g)
+    return activateSigmoid(g)
 
 
 def binaryCrossentropy(p):

@@ -8,7 +8,8 @@ y_data = loadedData[:, [-1]]
 def hypothesis(x, W, b):
     return np.dot(x, W) + b
 
-def meanSquaredError(y):
+
+def activateMeanSquaredError(y):
     return sum((y_data - y)**2)
 
 
@@ -19,7 +20,7 @@ def predict(x):
 
 W = np.random.random((3,1))
 b = np.random.random(1)
-cost = lambda _x,_w,_b: meanSquaredError(hypothesis(_x,_w,_b))
+cost = lambda _x,_w,_b: activateMeanSquaredError(hypothesis(_x,_w,_b))
 
 for i in range(10001):
     if i%100 == 0:

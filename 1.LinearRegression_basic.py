@@ -3,15 +3,18 @@ from NumericalDifferentiation import*
 x_data = np.array((1,2,3,4,5))
 y_data = np.array((3,1,-1,-3,-5))
 
+
 def hypothesis(x, w, b):
     return x*w + b
 
-def meanSquaredError(y):
+
+def activateMeanSquaredError(y):
     return sum((y_data - y)**2)
+
 
 w = np.random.random(1)
 b = np.random.random(1)
-cost = lambda _x,_w,_b: meanSquaredError(hypothesis(_x,_w,_b))
+cost = lambda _x,_w,_b: activateMeanSquaredError(hypothesis(_x,_w,_b))
 
 for i in range(1001):
     if i%100 == 0:

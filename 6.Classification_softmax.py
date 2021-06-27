@@ -6,16 +6,14 @@ y_data = np.array([(0, 0, 0, 1), (0, 0, 1, 0), (1, 0, 0, 0), (0, 0, 0, 1), (0, 1
                   (0, 0, 0, 1), (1, 0, 0, 0), (0, 1, 0, 0), (1, 0, 0, 0), (0, 0, 0, 1)], dtype=float)
 
 
-def softmax(z):
+def activateSoftmax(z):
     z = np.exp(z)
-    temp = np.sum(z, axis=-1).reshape(11, 1)
-    z = z / temp
-    return z
+    return z / np.sum(z, axis=-1).reshape(11, 1)
 
 
 def hypothesis(x, W, B):
     g = np.dot(x, W) + B
-    return softmax(g)
+    return activateSoftmax(g)
 
 
 def crossentropy(P):
@@ -24,14 +22,12 @@ def crossentropy(P):
 
 W = np.random.random((1, 4))
 B = np.random.random(4)
-learning_rate = 0.5 # 정규화 했을 경우는 0.01을주자
+learning_rate = 0.01
 def cost(_x, _w, _b): return crossentropy((hypothesis(_x, _w, _b)))
-x_data_normalized = x_data/100 #(x_data - np.mean(x_data)) / np.std(x_data)
+x_data_normalized = (x_data - np.mean(x_data)) / np.std(x_data)
 
 for i in range(10001):
     if i % 1000 == 0:
-        # if i % 5000 == 0:
-        #     learning_rate /= 2
         print('epoch %d, cost : %f' % (i, cost(x_data_normalized, W, B)))
     W -= (learning_rate * numerical_derivative(lambda t: cost(x_data_normalized, t, B), W))
     B -= (learning_rate * numerical_derivative(lambda t: cost(x_data_normalized, W, t), B))
