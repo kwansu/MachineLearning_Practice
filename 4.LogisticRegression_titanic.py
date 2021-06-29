@@ -103,7 +103,10 @@ x_test = data_test_preprocessed.values
 x_test = (x_test - np.mean(x_test,axis=0)) / np.std(x_test,axis=0)
 
 y = hypothesis(x_test,W,b)
-num = 0
-for value in y:
-    #print("{} : {}".format(num, 'survive' if value>=0.5 else 'dead'))
-    num += 1
+
+for i,value in enumerate(y):
+    if value >= 0.5:
+        survival = 'survive'
+    else:
+        survival = 'dead'
+    print(f"{i} : {survival}")
