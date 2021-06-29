@@ -9,7 +9,7 @@ y_data = np.array([(0, 0, 0, 1), (0, 0, 1, 0), (1, 0, 0, 0), (0, 0, 0, 1), (0, 1
 
 def activateNormalization(z):
     min = np.min(z)
-    z = z - min + 0.0000001
+    z = (z - min) / (np.max(z) - min)
     temp = z / np.sum(z, axis=-1).reshape(len(z), 1)
     if np.min(temp) < 0:
         a = 10
@@ -21,13 +21,13 @@ def hypothesis(x, W, B):
     return activateNormalization(g)
 
 
-def crossentropy(P,):
+def crossentropy(P):
     return -np.sum(y_data*np.log(P))
 
 
 W = np.array([(1.1, 1.25, 1.4, 1.6)])  # np.random.random((1, 4))
 B = np.array([-1., 0.1, 1., 2.])  # np.random.random(4)
-learning_rate = 0.05  # 정규화 했을 경우는 0.01을주자
+learning_rate = 0.05
 
 
 def cost(_x, _w, _b): 
@@ -57,15 +57,15 @@ for i in range(10001):
     _w = np.array([(1.0,1.0,1.0,1.0)])
     for i in w_set:
         _w[0,-1] = i
-        dw_set.append(numerical_derivative(lambda t: cost(x_data, t, B), _w)[0,-1])
+        dw_set.append(differentiate(lambda t: cost(x_data, t, B), _w)[0,-1])
     
     plt.plot(w_set, tuple(dw_set))
     plt.show()
 
     W -= (learning_rate *
-          numerical_derivative(lambda t: cost(x_data_normalized, t, B), W))
+          differentiate(lambda t: cost(x_data_normalized, t, B), W))
     B -= (learning_rate *
-          numerical_derivative(lambda t: cost(x_data_normalized, W, t), B))
+          differentiate(lambda t: cost(x_data_normalized, W, t), B))
 
 print("W : {}, B : {}".format(W, B))
 

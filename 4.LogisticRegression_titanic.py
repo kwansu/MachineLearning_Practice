@@ -91,8 +91,8 @@ cost = lambda _x,_w,_b: binaryCrossentropy((hypothesis(_x,_w,_b)))
 for i in range(1001):
     if i%100 == 0:
         print('epoch %d, cost : %f' %(i, cost(x_data, W, b)))
-    W -= (learningRate * numerical_derivative(lambda t: cost(x_data, t, b), W))
-    b -= (learningRate * numerical_derivative(lambda t: cost(x_data, W, t), b))
+    W -= (learningRate * differentiate(lambda t: cost(x_data, t, b), W))
+    b -= (learningRate * differentiate(lambda t: cost(x_data, W, t), b))
 
 predict(x_data)
 
@@ -102,9 +102,9 @@ data_test_preprocessed = preprocessData(data_test,False)
 x_test = data_test_preprocessed.values
 x_test = (x_test - np.mean(x_test,axis=0)) / np.std(x_test,axis=0)
 
-y = hypothesis(x_test,W,b)
+y_test = predict(x_test)
 
-for i,value in enumerate(y):
+for i,value in enumerate(y_test):
     if value >= 0.5:
         survival = 'survive'
     else:

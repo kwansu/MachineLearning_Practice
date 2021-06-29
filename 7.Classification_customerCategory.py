@@ -50,8 +50,8 @@ cost = lambda _x, _w, _b: crossentropy((hypothesis(_x, _w, _b)))
 for i in range(5001):
     if i % 500 == 0:
         print('epoch %d, cost : %f' % (i, cost(x_data_normalized, W, B)))
-    W -= (learning_rate * numerical_derivative(lambda t: cost(x_data_normalized, t, B), W))
-    B -= (learning_rate * numerical_derivative(lambda t: cost(x_data_normalized, W, t), B))
+    W -= (learning_rate * differentiate(lambda t: cost(x_data_normalized, t, B), W))
+    B -= (learning_rate * differentiate(lambda t: cost(x_data_normalized, W, t), B))
 
 #print("W : {}, B : {}".format(W, B))
 

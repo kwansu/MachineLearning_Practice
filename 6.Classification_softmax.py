@@ -29,8 +29,8 @@ x_data_normalized = (x_data - np.mean(x_data)) / np.std(x_data)
 for i in range(10001):
     if i % 1000 == 0:
         print('epoch %d, cost : %f' % (i, cost(x_data_normalized, W, B)))
-    W -= (learning_rate * numerical_derivative(lambda t: cost(x_data_normalized, t, B), W))
-    B -= (learning_rate * numerical_derivative(lambda t: cost(x_data_normalized, W, t), B))
+    W -= (learning_rate * differentiate(lambda t: cost(x_data_normalized, t, B), W))
+    B -= (learning_rate * differentiate(lambda t: cost(x_data_normalized, W, t), B))
 
 print("W : {}, B : {}".format(W, B))
 

@@ -31,8 +31,8 @@ cost = lambda _x,_w,_b: binaryCrossentropy((hypothesis(_x,_w,_b)))
 for i in range(10001):
     if i % 100 == 0:
         print('epoch %d, cost : %f' %(i, cost(x_data_normalized, w, b)))
-    w -= (0.01 * numerical_derivative(lambda t: cost(x_data_normalized, t, b), w))
-    b -= (0.01 * numerical_derivative(lambda t: cost(x_data_normalized, w, t), b))
+    w -= (0.01 * differentiate(lambda t: cost(x_data_normalized, t, b), w))
+    b -= (0.01 * differentiate(lambda t: cost(x_data_normalized, w, t), b))
 
 print("w : {}, b : {}".format(w, b))
 

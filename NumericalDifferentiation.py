@@ -1,6 +1,6 @@
 import numpy as np
 
-def numerical_derivative(expression, x):
+def differentiate(expression, x):
     result = np.zeros_like(x)
     iterator = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
 
