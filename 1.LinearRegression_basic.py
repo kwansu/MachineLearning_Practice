@@ -9,12 +9,12 @@ def hypothesis(x, w, b):
     return x*w + b
 
 
-def activateMeanSquaredError(y):
-    return sum((y_data - y)**2)
+def activate_meanSquaredError(p, y):
+    return sum((y - p)**2)
 
 
-def cost(x, w, b):
-    return activateMeanSquaredError(hypothesis(x, w, b))
+def calculate_cost(x, y, w, b):
+    return activate_meanSquaredError(hypothesis(x, w, b), y)
 
 
 w = np.random.random(1)
@@ -22,9 +22,9 @@ b = np.random.random(1)
 
 for i in range(1001):
     if i % 100 == 0:
-        print(f'ephoc : {i}, cost : {cost(x_data, w, b)}')
-    w -= 0.01 * differentiate(lambda t: cost(x_data, t, b), w)
-    b -= 0.01 * differentiate(lambda t: cost(x_data, w, t), b)
+        print(f'ephoc : {i}, cost : {calculate_cost(x_data, y_data, w, b)}')
+    w -= 0.01 * differentiate(lambda t: calculate_cost(x_data, y_data, t, b), w)
+    b -= 0.01 * differentiate(lambda t: calculate_cost(x_data, y_data, w, t), b)
 
 print(f"w : {w}, b : {b}")
 print(f"x : 4, predict : {hypothesis(4, w, b)}")
