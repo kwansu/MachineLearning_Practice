@@ -69,7 +69,7 @@ def hypothesis(X, W, b):
 
 
 def binaryCrossentropy(p, y):
-    delta = 1e-7
+    delta = 0.0000001
     return -np.sum(y*np.log(p+delta) + (1-y)*np.log(1-p+delta))
 
 

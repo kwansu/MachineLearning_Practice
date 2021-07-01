@@ -58,11 +58,6 @@ x_data = np.array([(0, 0), (0, 1), (1, 0), (1, 1)])
 y_data = np.array([0, 0, 0, 1]).reshape(4,1)
 test(x_data, y_data)
 
-# nand
-x_data = np.array([(0, 0), (0, 1), (1, 0), (1, 1)])
-y_data = np.array([1, 0, 0, 0]).reshape(4,1)
-test(x_data, y_data)
-
 # xor
 x_data = np.array([(0, 0), (0, 1), (1, 0), (1, 1)])
 y_data = np.array([0, 1, 1, 0]).reshape(4,1)

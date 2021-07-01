@@ -34,6 +34,6 @@ model = tf.keras.models.Sequential()
 # model.add(tf.keras.layers.Dense(64, activation='relu'))
 model.add(tf.keras.layers.Dense(4, activation='softmax'))
 model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
-              loss='categorical_crossentropy', metrics=['accuracy'])
+              cost='categorical_crossentropy', metrics=['accuracy'])
 
 model.fit(np.array(x_data, np.float), np.array(y_data, np.float), epochs=100)

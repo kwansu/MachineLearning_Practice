@@ -30,14 +30,15 @@ b = np.random.random(1)
 x_data_normalized = (x_data - np.mean(x_data, axis=0)) / np.std(x_data, axis=0)
 x_data_normalized = np.reshape(x_data_normalized, [len(x_data_normalized), 1])
 y_data = np.array([(1. if element else 0.) for element in y_data]).reshape([len(y_data), 1])
+learningRate = 0.001
 
 for i in range(10001):
     if i % 100 == 0:
         print(f'ephoc : {i}, cost : {calculate_cost(x_data, y_data, w, b)}')
-    w -= (0.01 * differentiate(lambda t: calculate_cost(x_data_normalized, y_data, t, b), w))
-    b -= (0.01 * differentiate(lambda t: calculate_cost(x_data_normalized, y_data, w, t), b))
+    w -= learningRate * differentiate(lambda t: calculate_cost(x_data_normalized, y_data, t, b), w)
+    b -= learningRate * differentiate(lambda t: calculate_cost(x_data_normalized, y_data, w, t), b)
 
-print("w : {}, b : {}".format(w, b))
+print(f"w : {w}, b : {b}")
 
 
 def evaluate(X):
@@ -50,7 +51,7 @@ def evaluate(X):
         if y == y_predic:
             correctCount += 1
 
-    print("accuracy : %f" % (correctCount/H.size))
+    print(f"accuracy : {correctCount/H.size}")
 
 
 evaluate(x_data_normalized)
