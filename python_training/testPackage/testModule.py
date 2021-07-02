@@ -1,2 +1,0 @@
-def printName():
-    print('__name__ :', __name__)

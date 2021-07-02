@@ -30,7 +30,7 @@ B = np.array([-1., 0.1, 1., 2.])  # np.random.random(4)
 learning_rate = 0.05
 
 
-def cost(_x, _w, _b): 
+def loss(_x, _w, _b): 
     return crossentropy((hypothesis(_x, _w, _b)))
 
 
@@ -44,12 +44,12 @@ for i in range(10001):
     if i % 1000 == 0:
         # if i % 5000 == 0:
         #     learning_rate /= 2
-        print('epoch %d, cost : %f' % (i, cost(x_data_normalized, W, B)))
+        print('epoch %d, loss : %f' % (i, loss(x_data_normalized, W, B)))
 
     # x_set = tuple(i * 0.01 for i in range(0, 100))
     # y_set = np.array([(1, 0, 0, 0) if x*disV+minV >= 90 else ((0, 1, 0, 0) if x*disV+minV >=
     #                  80 else((0, 0, 1, 0) if x*disV+minV >= 70 else (0, 0, 0, 1))) for x in x_set], dtype=float)
-    # y_set = numerical_derivative(lambda t: cost(
+    # y_set = numerical_derivative(lambda t: loss(
     #     np.array(x_set).reshape(100, 1), t, B, y_set), W)
 
     w_set = tuple(i * 0.01 for i in range(0, 100))
@@ -57,15 +57,15 @@ for i in range(10001):
     _w = np.array([(1.0,1.0,1.0,1.0)])
     for i in w_set:
         _w[0,-1] = i
-        dw_set.append(differentiate(lambda t: cost(x_data, t, B), _w)[0,-1])
+        dw_set.append(differentiate(lambda t: loss(x_data, t, B), _w)[0,-1])
     
     plt.plot(w_set, tuple(dw_set))
     plt.show()
 
     W -= (learning_rate *
-          differentiate(lambda t: cost(x_data_normalized, t, B), W))
+          differentiate(lambda t: loss(x_data_normalized, t, B), W))
     B -= (learning_rate *
-          differentiate(lambda t: cost(x_data_normalized, W, t), B))
+          differentiate(lambda t: loss(x_data_normalized, W, t), B))
 
 print("W : {}, B : {}".format(W, B))
 

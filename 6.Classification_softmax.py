@@ -20,7 +20,7 @@ def crossentropy(p, y):
     return -np.sum(y*np.log(p))
 
 
-def calculate_cost(x, y, w, b):
+def calculate_loss(x, y, w, b):
     return crossentropy(hypothesis(x, w, b), y)
 
 
@@ -31,9 +31,9 @@ x_data_normalized = (x_data - np.mean(x_data)) / np.std(x_data)
 
 for i in range(10001):
     if i % 1000 == 0:
-        print(f'ephoc : {i}, cost : {calculate_cost(x_data_normalized, y_data, w, b)}')
-    w -= learning_rate * differentiate(lambda t: calculate_cost(x_data_normalized, y_data, t, b), w)
-    b -= learning_rate * differentiate(lambda t: calculate_cost(x_data_normalized, y_data, w, t), b)
+        print(f'ephoc : {i}, loss : {calculate_loss(x_data_normalized, y_data, w, b)}')
+    w -= learning_rate * differentiate(lambda t: calculate_loss(x_data_normalized, y_data, t, b), w)
+    b -= learning_rate * differentiate(lambda t: calculate_loss(x_data_normalized, y_data, w, t), b)
 
 print(f"w : {w}, b : {b}")
 

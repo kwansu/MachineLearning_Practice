@@ -73,7 +73,7 @@ def binaryCrossentropy(p, y):
     return -np.sum(y*np.log(p+delta) + (1-y)*np.log(1-p+delta))
 
 
-def calculate_cost(x, y, w, b):
+def calculate_loss(x, y, w, b):
     return binaryCrossentropy(hypothesis(x, w, b), y)
 
 
@@ -93,9 +93,9 @@ learningRate = 0.001
 
 for i in range(1001):
     if i % 100 == 0:
-        print(f'ephoc : {i}, cost : {calculate_cost(x_data, y_data, W, b)}')
-    W -= learningRate * differentiate(lambda t: calculate_cost(x_data, y_data, t, b), W)
-    b -= learningRate * differentiate(lambda t: calculate_cost(x_data, y_data, W, t), b)
+        print(f'ephoc : {i}, loss : {calculate_loss(x_data, y_data, W, b)}')
+    W -= learningRate * differentiate(lambda t: calculate_loss(x_data, y_data, t, b), W)
+    b -= learningRate * differentiate(lambda t: calculate_loss(x_data, y_data, W, t), b)
 
 evaluate(x_data)
 

@@ -20,7 +20,7 @@ def predict(x):
     print("predict {} : {}".format(x, y))
 
 
-def calculate_cost(x, y, w, b):
+def calculate_loss(x, y, w, b):
     return activate_meanSquaredError(hypothesis(x, w, b), y)
 
 
@@ -29,9 +29,9 @@ b = np.random.random(1)
 
 for i in range(10001):
     if i % 100 == 0:
-        print(f'ephoc : {i}, cost : {calculate_cost(x_data, y_data, W, b)}')
-    W -= 0.000001 * differentiate(lambda t: calculate_cost(x_data, y_data, t, b), W)
-    b -= 0.000001 * differentiate(lambda t: calculate_cost(x_data, y_data, W, t), b)
+        print(f'ephoc : {i}, loss : {calculate_loss(x_data, y_data, W, b)}')
+    W -= 0.000001 * differentiate(lambda t: calculate_loss(x_data, y_data, t, b), W)
+    b -= 0.000001 * differentiate(lambda t: calculate_loss(x_data, y_data, W, t), b)
 
 print("W : {}, b : {}".format(W, b))
 print("x : (90,90,90), predict : %f" % hypothesis((90, 90, 90), W, b))

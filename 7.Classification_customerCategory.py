@@ -45,13 +45,13 @@ W = np.random.random((x_data.shape[-1], 4))
 B = np.random.random(4)
 learning_rate = 0.001
 x_data_normalized = (x_data - np.mean(x_data)) / np.std(x_data)
-cost = lambda _x, _w, _b: crossentropy((hypothesis(_x, _w, _b)))
+loss = lambda _x, _w, _b: crossentropy((hypothesis(_x, _w, _b)))
 
-for i in range(1001):
-    if i % 100 == 0:
-        print('epoch %d, cost : %f' % (i, cost(x_data_normalized, W, B)))
-    W -= (learning_rate * differentiate(lambda t: cost(x_data_normalized, t, B), W))
-    B -= (learning_rate * differentiate(lambda t: cost(x_data_normalized, W, t), B))
+for i in range(501):
+    if i % 50 == 0:
+        print('epoch %d, loss : %f' % (i, loss(x_data_normalized, W, B)))
+    W -= (learning_rate * differentiate(lambda t: loss(x_data_normalized, t, B), W))
+    B -= (learning_rate * differentiate(lambda t: loss(x_data_normalized, W, t), B))
 
 #print("W : {}, B : {}".format(W, B))
 
