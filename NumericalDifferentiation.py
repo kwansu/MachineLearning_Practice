@@ -2,10 +2,10 @@ import numpy as np
 
 def differentiate(expression, x):
     result = np.zeros_like(x)
-    iterator = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
+    iter = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
 
-    while not iterator.finished:
-        iterIndex = iterator.multi_index
+    while not iter.finished:
+        iterIndex = iter.multi_index
         tempCopy = x[iterIndex]
         limitDistance = 1e-4 * tempCopy
 
@@ -17,6 +17,6 @@ def differentiate(expression, x):
 
         result[iterIndex] = (plusDx - minusDx) / (2 * limitDistance)
         x[iterIndex] = tempCopy
-        iterator.iternext()
+        iter.iternext()
         
     return result
