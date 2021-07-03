@@ -1,7 +1,7 @@
 from NumericalDifferentiation import differentiate
 import numpy as np
 
-x_data = np.array([60, 73, 90, 55, 81, 70, 69, 95, 88, 83, 65])
+x_data = np.array([60, 73, 90, 55, 81, 70, 69, 95, 88, 83, 65]).reshape(11,1)
 y_data = [False, False, True, False, True,
           False, False, True, True, True, False]
 
@@ -17,7 +17,8 @@ def hypothesis(x, w, b):
 
 def binaryCrossentropy(p, y):
     delta = 0.0000001
-    return -np.sum(y*np.log(p+delta) + (1-y)*np.log(1-p+delta))
+    temp = y*np.log(p+delta) + (1-y)*np.log(1-p+delta)
+    return -np.sum(temp)
 
 
 def calculate_loss(x, y, w, b):
@@ -34,7 +35,7 @@ learningRate = 0.001
 
 for i in range(10001):
     if i % 100 == 0:
-        print(f'ephoc : {i}, loss : {calculate_loss(x_data, y_data, w, b)}')
+        print(f'ephoc : {i}, loss : {calculate_loss(x_data_normalized, y_data, w, b)}')
     w -= learningRate * differentiate(lambda t: calculate_loss(x_data_normalized, y_data, t, b), w)
     b -= learningRate * differentiate(lambda t: calculate_loss(x_data_normalized, y_data, w, t), b)
 

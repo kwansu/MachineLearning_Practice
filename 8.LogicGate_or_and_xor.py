@@ -22,15 +22,15 @@ def calculate_loss(x, y, w, b):
 
 def evaluate(X, Y, w, b):
     H = hypothesis(X, w, b)
-    correctCount = 0
+    correct_count = 0
 
     for x, y, h in zip(X, Y, H):
         y_predic = h >= 0.5
         print(f"x : {x} , predict : {y_predic}")
         if y == y_predic:
-            correctCount += 1
+            correct_count += 1
 
-    print("accuracy : %f" % (correctCount/H.size))
+    print("accuracy : %f" % (correct_count/H.size))
 
 
 def train(x, y, w, b, epoch, learning_rate = 0.01):
@@ -47,6 +47,7 @@ def test(x, y, epoch = 10000, learning_rate = 0.01):
     b = np.random.random(1)
     train(x, y, w, b, epoch, learning_rate)
     evaluate(x, y, w, b)
+
 
 # or
 x_data = np.array([(0, 0), (0, 1), (1, 0), (1, 1)])
