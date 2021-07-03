@@ -17,8 +17,7 @@ def hypothesis(x, w, b):
 
 def binaryCrossentropy(p, y):
     delta = 0.0000001
-    temp = y*np.log(p+delta) + (1-y)*np.log(1-p+delta)
-    return -np.sum(temp)
+    return -np.sum(y*np.log(p+delta) + (1-y)*np.log(1-p+delta))
 
 
 def calculate_loss(x, y, w, b):
@@ -29,7 +28,6 @@ w = np.random.random((1, 1))
 b = np.random.random(1)
 
 x_data_normalized = (x_data - np.mean(x_data, axis=0)) / np.std(x_data, axis=0)
-x_data_normalized = np.reshape(x_data_normalized, [len(x_data_normalized), 1])
 y_data = np.array([(1. if element else 0.) for element in y_data]).reshape([len(y_data), 1])
 learningRate = 0.001
 
