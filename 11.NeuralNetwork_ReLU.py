@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 class Layer:
     def __init__(self, input_shape, output_shape, *, activation='ReLU'):
         self.output_shape = output_shape
@@ -14,13 +15,13 @@ class Layer:
         elif activation == 'Sigmoid':
             # self.backPropagate_activation = lambda g : self.do_dh * g
             self.activate = self.activate_sigmoid
-            
+
     def reset(self):
         self.w = np.random.random(self.w.shape) - 0.5
         self.b = np.random.random(self.b.shape) - 0.5
 
     def progress(self, x_input):
-        self.dh_dw = x_input.swapaxes(1,2)
+        self.dh_dw = x_input.swapaxes(1, 2)
         return self.activate(np.matmul(x_input, self.w) + self.b)
 
     def activate_sigmoid(self, z):
@@ -38,7 +39,7 @@ class Layer:
         return self.update_layer(g, learning_rate)
 
     def update_layer(self, gradient, learning_rate):
-        temp2 = np.sum(gradient, axis=(0,1))
+        temp2 = np.sum(gradient, axis=(0, 1))
         self.b -= learning_rate * temp2
         temp = np.matmul(self.dh_dw, gradient)
         temp = np.sum(temp, axis=0)
@@ -64,7 +65,8 @@ class Model:
     def add_layer(self, output_shape, input_shape=None, *, activation='ReLU'):
         if input_shape is None:
             input_shape = self.layers[-1].output_shape
-        self.layers.append(Layer(input_shape, output_shape, activation=activation))
+        self.layers.append(
+            Layer(input_shape, output_shape, activation=activation))
 
     def predict(self, x):
         for layer in self.layers:
@@ -75,40 +77,40 @@ class Model:
         delta = 0.0000001
         return -np.sum(y*np.log(p+delta) + (1-y)*np.log(1-p+delta))
 
-    def show_gradient_graph(self, x, search_rate, range_count = 200):
+    def show_gradient_graph(self, x, search_rate, range_count=200):
         for layer in self.layers:
             for narray in layer:
-                iter = np.nditer(narray, flags=['multi_index'], op_flags=['readwrite'])
+                iter = np.nditer(
+                    narray, flags=['multi_index'], op_flags=['readwrite'])
                 while not iter.finished:
                     i = iter.multi_index
-                    x_arr = []
-                    y_arr = []
                     source = narray[i]
-                    plt.axvline(x=source, color='r')
                     stride = search_rate*source
-                    narray[i] -= range_count * stride / 2
-                    for n in range(200):
-                        x_arr.append(narray[i])
+                    x_arr = [source + i * stride for i in range(-100,100)]
+                    y_arr = []
+                    plt.axvline(x=source, color='r')
+                    for _x in x_arr:
+                        narray[i] = _x
                         y_arr.append(np.sum(self.predict(x)))
-                        narray[i] += stride
+
                     narray[i] = source
                     plt.plot(x_arr, y_arr)
                     plt.show()
                     iter.iternext()
-                
 
-    def update_layers(self, x, y, learning_rate, ephoc = None):
+    def update_layers(self, x, y, learning_rate, ephoc=None):
         c = self.predict(x)
         if ephoc is not None:
             temp = self.calc_binary_cross_entorpy(c, y)
             print(f'ephoc : {ephoc}, loss : {temp}')
-            # if self.loss - temp < 0.000001:
-            #     if self.stop_count > 2:
-            #         self.show_gradient_graph(x, 0.1)
-            #         self.stop_count = 0
-            #     self.stop_count += 1
-            # else:
-            #     self.stop_count = 0
+            if abs(self.loss - temp) < 0.005:
+                if self.stop_count > 2:
+                    self.show_gradient_graph(x, 0.05)
+                    self.stop_count = 0
+                self.stop_count += 1
+            else:
+                self.stop_count = 0
+            self.loss = temp
         gradient = c-y
         gradient = self.layers[-1].update_layer(gradient, learning_rate)
         other_layers = self.layers[:-1]
@@ -119,8 +121,8 @@ class Model:
         if print_count is None:
             print_count = epochs / 10
         for i in range(epochs):
-            if i%print_count == 0:
-                self.update_layers(x, y, learning_rate,i)
+            if i % print_count == 0:
+                self.update_layers(x, y, learning_rate, i)
             else:
                 self.update_layers(x, y, learning_rate)
 
@@ -139,12 +141,12 @@ class Model:
 
 model = Model()
 model.add_layer(input_shape=2, output_shape=3)
-model.add_layer(1,activation='Sigmoid')
+model.add_layer(1, activation='Sigmoid')
 
 
 def test(x, y):
     model.reset()
-    model.fit(x, y, learning_rate=0.1, epochs=10000)
+    model.fit(x, y, learning_rate=0.01, epochs=10000)
     model.evaluate(x, y)
 
 
