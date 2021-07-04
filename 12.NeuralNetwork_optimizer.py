@@ -7,7 +7,6 @@ fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
 
 class Layer:
     def __init__(self, input_count, output_count, *, activation='ReLU', optimizer=None):
-            
         self.output_count = output_count
         self.input_count = input_count
         self.reset()
@@ -74,9 +73,11 @@ class Layer:
         self.w -= learning_rate * gradient
 
 
-    def __iter__(self):
-        yield self.w
-        yield self.b
+    def get_variable_iter(self, multi_index, step_size, range):
+        source = self.w[multi_index]
+        for var in range:
+            var = self.w[multi_index] = var*step_size
+            yield var
 
 
 class Model:
@@ -140,48 +141,25 @@ class Model:
             print(f"x : {xi} , predict : {y_predic}")
             if yi == y_predic:
                 correct_count += 1
-
         print(f"accuracy : {correct_count/p.size}")
 
 
-    def show_gradient(self, y = 0, learning_rate = 0):
-        x_tile = [i * 0.01 for i in range(-100, 100)]
+    def show_gradient_graph(self, x, y):
+        w1_iter = self.layers[0].get_variable_iter((0,1),0.1,range(-100, 100))
+        w2_iter = self.layers[0].get_variable_iter((1,0),0.1,range(-100, 100))
+        loss_surface = np.zeros((200, 200))
+        w1_tile = np.linspace(-1.0, 1.0, 200)
+        w1_tile = np.tile(w1_tile, (200, 1))
+        w2_tile = np.transpose(w1_tile)
+        for i, w1 in enumerate(w1_iter):
+            for j, w2 in enumerate(w2_iter):
+                loss_surface[i,j] = self.calc_binary_cross_entorpy(self.predict(x),y)
 
-        for x in x_tile:
-            self.layers[-1].progress(x)
-        
-        x = np.linspace(-10, 10, 11)
-        X = np.tile(x, (11, 1))
-        Y = np.transpose(X)
-        Z = np.random.rand(11, 11)
-        
-        ax.plot_surface(X, Y, Z)
-        ax.set_zlim(-10, 10)
+        ax.plot_surface(w1_tile, w2_tile, loss_surface)
+        ax.set_zlim(-2, 2)
         
         plt.tight_layout()
         plt.show()
-
-
-    def show_gradient_graph(self, x, step_rate, range_count=100):
-        for layer in self.layers:
-            for narray in layer:
-                iter = np.nditer(
-                    narray, flags=['multi_index'], op_flags=['readwrite'])
-                while not iter.finished:
-                    i = iter.multi_index
-                    source = narray[i]
-                    stride = step_rate*source
-                    x_arr = [source + i * stride for i in range(-range_count,range_count)]
-                    y_arr = []
-                    plt.axvline(x=source, color='r')
-                    for _x in x_arr:
-                        narray[i] = _x
-                        y_arr.append(np.sum(self.predict(x)))
-
-                    narray[i] = source
-                    plt.plot(x_arr, y_arr)
-                    plt.show()
-                    iter.iternext()
 
 
 model = Model()
@@ -191,6 +169,7 @@ model.add_layer(1, activation='Sigmoid', optimizer='momentum')
 
 def test(x, y):
     model.reset()
+    model.show_gradient_graph(x,y)
     model.fit(x, y, learning_rate=0.01, epochs=10000)
     model.evaluate(x, y)
 

@@ -1,22 +1,20 @@
 import numpy as np
+from numpy.lib.utils import source
+
 
 def differentiate(expression, x):
-    result = np.zeros_like(x)
-    iter = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
+    gradient = np.zeros_like(x)
+    x_iter = np.nditer(x, flags=['multi_index'])
 
-    while not iter.finished:
-        iterIndex = iter.multi_index
-        tempCopy = x[iterIndex]
-        limitDistance = 1e-4 * tempCopy
-
-        x[iterIndex] = float(tempCopy) + limitDistance
-        plusDx = expression(x)
-
-        x[iterIndex] = float(tempCopy) - limitDistance
-        minusDx = expression(x)
-
-        result[iterIndex] = (plusDx - minusDx) / (2 * limitDistance)
-        x[iterIndex] = tempCopy
-        iter.iternext()
+    while not x_iter.finished:
+        mi = x_iter.multi_index
+        source = x[mi]
+        limited_distance = 1e-4 * source
+        y = expression(x)
+        x[mi] += limited_distance
+        y_plus_dx = expression(x)
+        x[mi] = source
+        gradient[mi] = (y_plus_dx - y) / (limited_distance)
+        x_iter.iternext()
         
-    return result
+    return gradient

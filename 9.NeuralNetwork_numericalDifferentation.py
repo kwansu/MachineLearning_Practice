@@ -1,4 +1,5 @@
 from NumericalDifferentiation import differentiate
+from performance_test import print_execution_time
 import numpy as np
 
 
@@ -85,6 +86,7 @@ model.add_layer(input_shape=2, output_shape=4)
 model.add_layer(1)
 
 
+@print_execution_time
 def test(x,y):
     model.reset()
     model.fit(x,y,epochs=10000)
