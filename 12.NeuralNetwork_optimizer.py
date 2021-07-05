@@ -95,8 +95,7 @@ class Model:
     def add_layer(self, output_count, input_count=None, *, activation='ReLU', optimizer=None):
         if input_count is None:
             input_count = self.layers[-1].output_count
-        self.layers.append(
-            Layer(input_count, output_count, activation=activation, optimizer=optimizer))
+        self.layers.append(Layer(input_count, output_count, activation=activation, optimizer=optimizer))
 
 
     def predict(self, x):

@@ -65,8 +65,7 @@ class Model:
     def add_layer(self, output_shape, input_shape=None, *, activation='ReLU'):
         if input_shape is None:
             input_shape = self.layers[-1].output_shape
-        self.layers.append(
-            Layer(input_shape, output_shape, activation=activation))
+        self.layers.append(Layer(input_shape, output_shape, activation=activation))
 
     def predict(self, x):
         for layer in self.layers:

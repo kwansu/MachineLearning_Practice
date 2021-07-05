@@ -6,6 +6,7 @@ import random
 x_data = np.array((1, 4, 9, 12, 13))
 y_data = np.array((1, -8, -25, -31, -36))
 
+
 def hypothesis(x, w, b):  # 실제 y값을 예측할 때 쓴다.
     return x*w + b
 
