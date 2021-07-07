@@ -1,5 +1,9 @@
+from mpl_toolkits.mplot3d import axes3d
+import matplotlib.pyplot as plt
 import numpy as np
 import random
+
+fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
 
 # x_data = np.array((1, 2, 3, 4, 5))
 # y_data = np.array((4, 6, 8, 10, 12))
@@ -23,9 +27,26 @@ def differentiate(f, x):
     return gradient
 
 
+def show_gradient_graph(x, y, *, num_coordinates = 100):
+    w_tile = np.linspace(10.0, -10.0, num_coordinates)
+    loss_surface = np.zeros((num_coordinates, num_coordinates))
+    for row, w in enumerate(w_tile):
+        for col, b in enumerate(w_tile):
+            loss_surface[row,col] = calc_loss(x, y, w, b)
+    w_tile = np.tile(w_tile, (num_coordinates, 1))
+    b_tile = np.transpose(w_tile)
+    ax.plot_surface(w_tile, b_tile, loss_surface)
+    #ax.set_zlim(0, 1)
+    
+    plt.tight_layout()
+    plt.show()
+
+
 w = random.random()
 b = random.random()
 learning_rate = 0.001
+
+show_gradient_graph(x_data, y_data)
 
 for i in range(10001):
     if i % 1000 == 0:
