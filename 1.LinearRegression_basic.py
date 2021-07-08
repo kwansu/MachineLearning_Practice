@@ -3,8 +3,8 @@ import random
 # x_data = np.array([1, 2, 3, 4, 5])
 # y_data = np.array([1, 3, 5, 7, 9])
 import numpy as np
-x_data = np.array((1,  4,   9,  12, 13))    # 계산을 쉽게하기 위해 numpy를 사용
-y_data = np.array((1, -8, -25, -30, -36))
+x_data = np.array([1,  4,   9,  12, 13])    # 계산을 쉽게하기 위해 numpy를 사용
+y_data = np.array([1, -8, -25, -30, -36])
  
 def hypothesis(x, w, b):  # 실제 y값을 예측할 때 쓴다.
     return x*w + b

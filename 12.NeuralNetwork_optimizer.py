@@ -25,6 +25,9 @@ class Layer:
             self.update_variables = self.optimize_momentum
 
 
+    def print_weight(self):
+        return self.w
+
     def reset(self):
         if self.output_count == 1:
             self.w = np.random.random((self.input_count+1, self.output_count))
@@ -130,6 +133,9 @@ class Model:
             else:
                 self.update_layers(x, y, learning_rate)
 
+        for layer in self.layers:
+            layer.print_weight()
+
 
     def evaluate(self, x, y):
         p = self.predict(x)
@@ -168,7 +174,7 @@ model.add_layer(1, activation='Sigmoid', optimizer='momentum')
 
 def test(x, y):
     model.reset()
-    model.show_gradient_graph(x,y)
+    #model.show_gradient_graph(x,y)
     model.fit(x, y, learning_rate=0.01, epochs=10000)
     model.evaluate(x, y)
 
