@@ -29,7 +29,7 @@ def test_where(tensor : np.ndarray, loop_count):
 a = np.random.random((100,100,100,100)) - 0.5
 loop_count = 10
 
-test_clip(a, loop_count)
-test_where(a, loop_count)
-test_clip(a, loop_count)
-test_where(a, loop_count)
+# test_clip(a, loop_count)
+# test_where(a, loop_count)
+# test_clip(a, loop_count)
+# test_where(a, loop_count)

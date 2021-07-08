@@ -5,10 +5,10 @@ import random
 
 fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
 
-# x_data = np.array((1, 2, 3, 4, 5))
-# y_data = np.array((4, 6, 8, 10, 12))
-x_data = np.array((1, 4, 9, 12, 13))
-y_data = np.array((1, -8, -25, -31, -36))
+x_data = np.array([1, 2, 3, 4, 5])
+y_data = np.array([1, 3, 5, 7, 9])
+# x_data = np.array((1, 4, 9, 12, 13))
+# y_data = np.array((1, -8, -25, -30, -36))
 
 
 def hypothesis(x, w, b):  # 실제 y값을 예측할 때 쓴다.
@@ -16,7 +16,7 @@ def hypothesis(x, w, b):  # 실제 y값을 예측할 때 쓴다.
 
 
 def calc_loss(x, y, w, b):
-    return sum((y - (x*w + b))**2)
+    return np.sum((y - (x*w + b))**2)
 
 
 def differentiate(f, x):
@@ -27,16 +27,21 @@ def differentiate(f, x):
     return gradient
 
 
-def show_gradient_graph(x, y, *, num_coordinates = 100):
-    w_tile = np.linspace(10.0, -10.0, num_coordinates)
-    loss_surface = np.zeros((num_coordinates, num_coordinates))
+def show_gradient_graph(x, y, *, bins = 100):
+    w_tile = np.linspace(0.0, 4.0, bins)
+    b_tile = np.linspace(-6.0, 4.0, bins)
+    loss_surface = np.zeros((bins, bins))
     for row, w in enumerate(w_tile):
-        for col, b in enumerate(w_tile):
-            loss_surface[row,col] = calc_loss(x, y, w, b)
-    w_tile = np.tile(w_tile, (num_coordinates, 1))
-    b_tile = np.transpose(w_tile)
-    ax.plot_surface(w_tile, b_tile, loss_surface)
-    #ax.set_zlim(0, 1)
+        for col, b in enumerate(b_tile):
+            loss_surface[row,col] = calc_loss(x, y, w, b) + calc_loss(x,y,w,-2-b)
+    w_tile = np.tile(w_tile, (bins, 1))
+    b_tile = np.tile(b_tile, (bins, 1))
+    b_tile = np.transpose(b_tile)
+
+    t1 = np.linspace(100,200, 100)
+    t1 = np.tile(t1,(100, 1))
+    t2 = np.transpose(t1)
+    ax.plot_surface(t1, t2, loss_surface, cmap='viridis')
     
     plt.tight_layout()
     plt.show()
