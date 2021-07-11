@@ -14,7 +14,8 @@ def differentiate(expression, x):
         x[mi] += limited_distance
         y_plus_dx = expression(x)
         x[mi] = source
-        gradient[mi] = (y_plus_dx - y) / (limited_distance)
+        temp = (y_plus_dx - y) / (limited_distance)
+        gradient[mi] = temp
         x_iter.iternext()
         
     return gradient
