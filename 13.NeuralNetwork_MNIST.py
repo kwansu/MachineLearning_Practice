@@ -4,8 +4,8 @@ import numpy as np
 
 
 class Layer:
-    mr = 0.9
-    vr = 0.999
+    beta1 = 0.9
+    beta2 = 0.999
     epsilon = 1e-8
 
     def __init__(self, input_count, output_count, *, activation='ReLU', is_output=False, optimizer=None):
@@ -17,7 +17,10 @@ class Layer:
         self.do_dh = None
         self.velocity_rate = 0.8
         self.v = 0.0
+        self.v_sum = 0.0
         self.m = 0.0
+        self.m_sum = 0.0
+        self.adam_count = 1
         if activation == 'ReLU':
             self.activate = self.activate_relu
         elif activation == 'Sigmoid':
@@ -32,9 +35,14 @@ class Layer:
         elif optimizer == 'Adam':
             self.update_variables = self.optimize_Adam
 
+    
+    def set_adam(self, bins):
+        self.v = self.v_sum / bins
+        self.v_sum = 0.0
+        self.m = self.m_sum / bins
+        self.m_sum = 0.0
+        self.adam_count += 1
 
-    def print_weight(self):
-        return self.w
 
     def reset(self):
         if self.is_output:
@@ -90,11 +98,13 @@ class Layer:
 
 
     def optimize_Adam(self, gradient, learning_rate):
-        self.m = Layer.mr*self.v + (1-Layer.mr)*gradient
-        m_hat = self.m / (1-Layer.mr**2)
-        self.v = Layer.vr*self.v + (1-Layer.vr)*gradient**2
-        v_hat = self.v / (1-Layer.vr**2)
-        self.w -= learning_rate * m_hat / np.sqrt(v_hat+Layer.epsilon)
+        m = Layer.beta1*self.m + (1-Layer.beta1)*gradient
+        v = Layer.beta2*self.v + (1-Layer.beta2)*np.power(gradient,2)
+        self.m_sum += m
+        self.v_sum += v
+        m_hat = m / (1 - np.power(Layer.beta1, self.adam_count))
+        v_hat = v / (1 - np.power(Layer.beta2, self.adam_count))
+        self.w -= learning_rate * m_hat / (np.sqrt(v_hat) + Layer.epsilon)
 
 
 class Model:
@@ -121,21 +131,17 @@ class Model:
             x = layer.progress(x)
         return x
 
-
-    def calc_cross_entropy(self, p, y):
-        delta = 0.0000001
-        return -np.sum(y*np.log(p+delta) + (1-y)*np.log(1-p+delta))
-
     
     def calc_cross_entropy(self, p, y):
-        return -np.sum(y*np.log(p))
+        delta = 0.0000001
+        return -np.sum(y*np.log(p+delta))
 
     
     def update_layers(self, x, y, learning_rate, ephoc=None):
         c = self.predict(x)
         if ephoc is not None:
             temp = self.calc_cross_entropy(c, y)
-            print(f'ephoc : {ephoc}, loss : {temp}')
+            self.loss += temp
         gradient = c-y
         gradient = self.layers[-1].calc_backpropagation_and_update(gradient, learning_rate)
         other_layers = self.layers[:-1]
@@ -152,30 +158,33 @@ class Model:
 
         for i in range(epochs):
             s = 0
+            self.loss = 0.0
             for b in range(bins):
                 e = s+batch_size
-                if i % print_count == 0 and b == 0:
+                if i % print_count == 0:
                     self.update_layers(x[s:e], y[s:e], learning_rate, i)
                 else:
                     self.update_layers(x[s:e], y[s:e], learning_rate)
                 s = e
+            
+            for layer in self.layers:
+                layer.set_adam(bins)
+            
             if other != 0:
                 self.update_layers(x[s:], y[s:], learning_rate)
-
-        for layer in self.layers:
-            layer.print_weight()
-
+            if i%print_count == 0:
+                print(f'ephoc : {i}, loss : {self.loss}')
+            
 
     def evaluate(self, x, y):
         p = self.predict(x)
         correct_count = 0
 
-        for xi, yi, pi in zip(x, y, p):
-            y_predic = pi >= 0.5
-            print(f"x : {xi} , predict : {y_predic}")
-            if yi == y_predic:
+        for yi, pi in zip(y, p):
+            if yi[0, np.argmax(pi)] == 1.0:
                 correct_count += 1
-        print(f"accuracy : {correct_count/p.size}")
+
+        print(f"accuracy : {correct_count/len(y)}")
 
 
 data = pd.read_csv("data/mnist_train.csv")
@@ -186,11 +195,26 @@ y_data = pd.get_dummies(y_data)
 y_train = y_data.values
 y_train = y_train.reshape([y_train.shape[0], 1, y_train.shape[-1]])
 
+test_count = int(len(y_train)/10)
+x_test = x_train[-test_count:]
+x_train = x_train[:-test_count]
+y_test = y_train[-test_count:]
+y_train = y_train[:-test_count]
+
 model = Model()
 model.add_layer(input_count=784, output_count=196, optimizer='Adam')
 model.add_layer(output_count=196, optimizer='Adam')
 model.add_layer(output_count=49, optimizer='Adam')
 model.add_layer(output_count=10, is_output = True, activation='softmax', optimizer='Adam')
-model.fit(x_train, y_train, epochs=10, batch_size=128, learning_rate=0.001)
+model.fit(x_train, y_train, epochs=30, batch_size=128, learning_rate=0.001)
 
-model.evaluate(x_train, y_train)
+
+# data = pd.read_csv("data/mnist_test.csv")
+# x_test = data.drop(['label'], axis=1).values / 255.0
+# x_test = x_test.reshape([x_test.shape[0], 1, x_test.shape[-1]])
+# y_data = data['label']
+# y_data = pd.get_dummies(y_data)
+# y_test = y_data.values
+# y_test = y_test.reshape([y_test.shape[0], 1, y_test.shape[-1]])
+
+model.evaluate(x_test, y_test)

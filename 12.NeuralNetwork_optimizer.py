@@ -6,8 +6,8 @@ import numpy as np
 fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
 
 class Layer:
-    mr = 0.9
-    vr = 0.999
+    beta1 = 0.9
+    beta2 = 0.999
     epsilon = 1e-8
 
     def __init__(self, input_count, output_count, *, activation='ReLU', optimizer=None):
@@ -19,6 +19,7 @@ class Layer:
         self.velocity_rate = 0.8
         self.v = 0.0
         self.m = 0.0
+        self.adam_count = 1
         if activation == 'ReLU':
             self.activate = self.activate_relu
         elif activation == 'Sigmoid':
@@ -84,11 +85,12 @@ class Layer:
 
 
     def optimize_Adam(self, gradient, learning_rate):
-        self.m = Layer.mr*self.v + (1-Layer.mr)*gradient
-        m_hat = self.m / (1-Layer.mr**2)
-        self.v = Layer.vr*self.v + (1-Layer.vr)*gradient**2
-        v_hat = self.v / (1-Layer.vr**2)
-        self.w -= learning_rate * m_hat / np.sqrt(v_hat+Layer.epsilon)
+        self.m = Layer.beta1*self.m + (1-Layer.beta1)*gradient
+        self.v = Layer.beta2*self.v + (1-Layer.beta2)*np.power(gradient,2)
+        m_hat = self.m / (1 - np.power(Layer.beta1, self.adam_count))
+        v_hat = self.v / (1 - np.power(Layer.beta2, self.adam_count))
+        self.w -= learning_rate * m_hat / (np.sqrt(v_hat) + Layer.epsilon)
+        self.adam_count += 1
 
 
     def get_variable_iter(self, multi_index, step_size, range):
@@ -192,8 +194,8 @@ class Model:
 
 
 model = Model()
-model.add_layer(input_count=2, output_count=2, optimizer='momentum')
-model.add_layer(1, activation='Sigmoid', optimizer='momentum')
+model.add_layer(input_count=2, output_count=2, optimizer='Adam')
+model.add_layer(1, activation='Sigmoid', optimizer='Adam')
 
 
 def test(x, y):
