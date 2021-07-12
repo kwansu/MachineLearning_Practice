@@ -1,18 +1,17 @@
-from mpl_toolkits.mplot3d import axes3d
-import matplotlib.pyplot as plt
+from operator import le
+import pandas as pd
 import numpy as np
 
-
-fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
 
 class Layer:
     mr = 0.9
     vr = 0.999
     epsilon = 1e-8
 
-    def __init__(self, input_count, output_count, *, activation='ReLU', optimizer=None):
+    def __init__(self, input_count, output_count, *, activation='ReLU', is_output=False, optimizer=None):
         self.output_count = output_count
         self.input_count = input_count
+        self.is_output = is_output
         self.reset()
         self.dh_dw = None
         self.do_dh = None
@@ -23,6 +22,8 @@ class Layer:
             self.activate = self.activate_relu
         elif activation == 'Sigmoid':
             self.activate = self.activate_sigmoid
+        elif activation == 'softmax':
+            self.activate = self.activate_softmax
 
         if optimizer is None:
             self.update_variables = self.optimize_gradient_descent
@@ -36,10 +37,10 @@ class Layer:
         return self.w
 
     def reset(self):
-        if self.output_count == 1:
-            self.w = np.random.random((self.input_count+1, self.output_count))
+        if self.is_output:
+            self.w = np.random.random((self.input_count+1, self.output_count))/64
         else:
-            self.w = np.random.random((self.input_count+1, self.output_count+1))
+            self.w = np.random.random((self.input_count+1, self.output_count+1))/64
             for i in range(self.input_count):
                 self.w[i, self.output_count] = 0.0
             self.w[self.input_count, self.output_count] = 1.0
@@ -59,6 +60,11 @@ class Layer:
     def activate_relu(self, z):
         self.do_dh = np.where(z > 0., 1., 0.)
         return np.where(z > 0., z, 0.)
+
+    
+    def activate_softmax(self, z):
+        z = np.exp(z)
+        return z / np.expand_dims(np.sum(z, axis=-1), axis=-1)
 
 
     def update_backpropagation(self, g, learning_rate):
@@ -91,13 +97,6 @@ class Layer:
         self.w -= learning_rate * m_hat / np.sqrt(v_hat+Layer.epsilon)
 
 
-    def get_variable_iter(self, multi_index, step_size, range):
-        source = self.w[multi_index]
-        for var in range:
-            var = self.w[multi_index] = var*step_size
-            yield var
-
-
 class Model:
     def __init__(self):
         self.layers = []
@@ -110,10 +109,10 @@ class Model:
             layer.reset()
 
 
-    def add_layer(self, output_count, input_count=None, *, activation='ReLU', optimizer=None):
+    def add_layer(self, output_count, input_count=None, *, activation='ReLU', optimizer=None, is_output = False):
         if input_count is None:
             input_count = self.layers[-1].output_count
-        self.layers.append(Layer(input_count, output_count, activation=activation, optimizer=optimizer))
+        self.layers.append(Layer(input_count, output_count, activation=activation, optimizer=optimizer, is_output=is_output))
 
 
     def predict(self, x):
@@ -123,24 +122,20 @@ class Model:
         return x
 
 
-    def calc_binary_cross_entorpy(self, p, y):
+    def calc_cross_entropy(self, p, y):
         delta = 0.0000001
         return -np.sum(y*np.log(p+delta) + (1-y)*np.log(1-p+delta))
 
+    
+    def calc_cross_entropy(self, p, y):
+        return -np.sum(y*np.log(p))
 
+    
     def update_layers(self, x, y, learning_rate, ephoc=None):
         c = self.predict(x)
         if ephoc is not None:
-            temp = self.calc_binary_cross_entorpy(c, y)
+            temp = self.calc_cross_entropy(c, y)
             print(f'ephoc : {ephoc}, loss : {temp}')
-            if abs(self.loss - temp) < 0.005:
-                if self.stop_count > 2:
-                    #self.show_gradient_graph(x, 0.05)
-                    self.stop_count = 0
-                self.stop_count += 1
-            else:
-                self.stop_count = 0
-            self.loss = temp
         gradient = c-y
         gradient = self.layers[-1].calc_backpropagation_and_update(gradient, learning_rate)
         other_layers = self.layers[:-1]
@@ -148,14 +143,24 @@ class Model:
             gradient = layer.update_backpropagation(gradient, learning_rate)
 
 
-    def fit(self, x, y, epochs, learning_rate=0.01, print_count=None):
+    def fit(self, x, y, epochs, learning_rate=0.01, batch_size = None, print_count=None):
         if print_count is None:
             print_count = epochs / 10
+        if batch_size is None:
+            batch_size = len(y)
+        bins, other = divmod(len(y), batch_size)
+
         for i in range(epochs):
-            if i % print_count == 0:
-                self.update_layers(x, y, learning_rate, i)
-            else:
-                self.update_layers(x, y, learning_rate)
+            s = 0
+            for b in range(bins):
+                e = s+batch_size
+                if i % print_count == 0 and b == 0:
+                    self.update_layers(x[s:e], y[s:e], learning_rate, i)
+                else:
+                    self.update_layers(x[s:e], y[s:e], learning_rate)
+                s = e
+            if other != 0:
+                self.update_layers(x[s:], y[s:], learning_rate)
 
         for layer in self.layers:
             layer.print_weight()
@@ -173,47 +178,19 @@ class Model:
         print(f"accuracy : {correct_count/p.size}")
 
 
-    def show_gradient_graph(self, x, y):
-        w1_iter = self.layers[0].get_variable_iter((0,1),0.1,range(-100, 100))
-        w2_iter = self.layers[0].get_variable_iter((1,0),0.1,range(-100, 100))
-        loss_surface = np.zeros((200, 200))
-        w1_tile = np.linspace(-1.0, 1.0, 200)
-        w1_tile = np.tile(w1_tile, (200, 1))
-        w2_tile = np.transpose(w1_tile)
-        for i, w1 in enumerate(w1_iter):
-            for j, w2 in enumerate(w2_iter):
-                loss_surface[i,j] = self.calc_binary_cross_entorpy(self.predict(x),y)
-
-        ax.plot_surface(w1_tile, w2_tile, loss_surface)
-        ax.set_zlim(-2, 2)
-        
-        plt.tight_layout()
-        plt.show()
-
+data = pd.read_csv("data/mnist_train.csv")
+x_train = data.drop(['label'], axis=1).values / 255.0
+x_train = x_train.reshape([x_train.shape[0], 1, x_train.shape[-1]])
+y_data = data['label']
+y_data = pd.get_dummies(y_data)
+y_train = y_data.values
+y_train = y_train.reshape([y_train.shape[0], 1, y_train.shape[-1]])
 
 model = Model()
-model.add_layer(input_count=2, output_count=2, optimizer='momentum')
-model.add_layer(1, activation='Sigmoid', optimizer='momentum')
+model.add_layer(input_count=784, output_count=196, optimizer='Adam')
+model.add_layer(output_count=196, optimizer='Adam')
+model.add_layer(output_count=49, optimizer='Adam')
+model.add_layer(output_count=10, is_output = True, activation='softmax', optimizer='Adam')
+model.fit(x_train, y_train, epochs=10, batch_size=128, learning_rate=0.001)
 
-
-def test(x, y):
-    model.reset()
-    #model.show_gradient_graph(x,y)
-    model.fit(x, y, learning_rate=0.001, epochs=10000)
-    model.evaluate(x, y)
-
-
-# # or
-# x_data = np.array([(0, 0), (0, 1), (1, 0), (1, 1)]).reshape(4, 1, 2)
-# y_data = np.array([0, 1, 1, 1]).reshape(4, 1, 1)
-# test(x_data, y_data)
-
-# # and
-# x_data = np.array([(0, 0), (0, 1), (1, 0), (1, 1)]).reshape(4, 1, 2)
-# y_data = np.array([0, 0, 0, 1]).reshape(4, 1, 1)
-# test(x_data, y_data)
-
-# xor
-x_data = np.array([(0, 0), (0, 1), (1, 0), (1, 1)]).reshape(4, 1, 2)
-y_data = np.array([0, 1, 1, 0]).reshape(4, 1, 1)
-test(x_data, y_data)
+model.evaluate(x_train, y_train)
