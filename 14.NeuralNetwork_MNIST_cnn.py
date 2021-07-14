@@ -8,9 +8,13 @@ class Layer:
     momentum_rate = 0.9
     epsilon = 1e-8
 
-    def __init__(self, input_count, output_count, *, activation='ReLU'):
-        self.output_count = output_count
-        self.input_count = input_count
+    def __init__(self, input_shape, output_shape, filters, kernel,
+                 *, stride=1, activation='ReLU'):
+        self.output_shape = output_shape
+        self.input_shape = input_shape
+        self.filters = filters
+        self.kernel = kernel
+        self.stride = stride
         self.optimize_func = None
         self.dh_dw = None
         self.do_dh = None
@@ -44,14 +48,26 @@ class Layer:
         self.adam_count += 1
 
 
-    def reset(self, is_output):
-        if is_output:
-            self.w = np.random.random((self.input_count+1, self.output_count))/64
-        else:
-            self.w = np.random.random((self.input_count+1, self.output_count+1))/64
-            for i in range(self.input_count):
-                self.w[i, self.output_count] = 0.0
-            self.w[self.input_count, self.output_count] = 1.0
+    def setup(self, is_output):
+        # if is_output:
+        #     self.w = np.random.random((self.input_shape+1, self.output_shape))/64
+        # else:
+        #     self.w = np.random.random((self.input_shape+1, self.output_shape+1))/64
+        #     for i in range(self.input_shape):
+        #         self.w[i, self.output_shape] = 0.0
+        #     self.w[self.input_shape, self.output_shape] = 1.0
+
+        self.w = np.random.random(tuple(self.filters)+ self.kernel)
+        self.b = np.random.random(self.filters)
+
+    
+    def calc_convolutional_filter(self, x_input):
+        kernel = np.flipud(np.fliplr(self.kernel))
+        sub_matrices = np.lib.stride_tricks.as_strided(x_input,
+                        shape = tuple(np.subtract(x_input.shape[1:], kernel.shape))+kernel.shape, 
+                        strides = self.strides * 2)
+
+        return np.einsum('ij,klij->kl', kernel, sub_matrices)
 
 
     def progress(self, x_input):
@@ -114,15 +130,15 @@ class Model:
         self.stop_count = 0
 
 
-    def reset(self):
+    def setup(self):
         for layer in self.layers:
-            layer.reset()
+            layer.setup()
 
 
-    def add_layer(self, output_count, input_count=None, *, activation='ReLU'):
-        if input_count is None:
-            input_count = self.layers[-1].output_count
-        self.layers.append(Layer(input_count, output_count, activation=activation))
+    def add_layer(self, output_shape, input_shape=None, *, activation='ReLU'):
+        if input_shape is None:
+            input_shape = self.layers[-1].output_shape
+        self.layers.append(Layer(input_shape, output_shape, activation=activation))
 
 
     def predict(self, x):
@@ -152,10 +168,10 @@ class Model:
     def compile(self, loss, *, optimizer=None):
         for layer in self.layers[:-1]:
             layer.set_optimizer(optimizer)
-            layer.reset(False)
+            layer.setup(False)
 
         self.layers[-1].set_optimizer(optimizer)
-        self.layers[-1].reset(True)
+        self.layers[-1].setup(True)
         
 
 
@@ -212,10 +228,10 @@ y_test = y_train[-test_count:]
 y_train = y_train[:-test_count]
 
 model = Model()
-model.add_layer(input_count=784, output_count=196)
-model.add_layer(output_count=196)
-model.add_layer(output_count=49)
-model.add_layer(output_count=10, activation='softmax')
+model.add_layer(input_shape=784, output_shape=196)
+model.add_layer(output_shape=196)
+model.add_layer(output_shape=49)
+model.add_layer(output_shape=10, activation='softmax')
 model.compile(loss='cross_entropy', optimizer='Adam')
 model.fit(x_train, y_train, epochs=20, batch_size=128, learning_rate=0.001)
 
