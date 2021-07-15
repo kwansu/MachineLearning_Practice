@@ -115,12 +115,16 @@ class ConvolutionLayer(Layer):
         self.kernel = kernel
 
         # output 계산 -> 튜플이므로 계산방법을 변경해야 한다.
-        self.output_shape = (input_shape - kernel) / strid + 1
+        temp = ((np.array(input_shape) - np.array(kernel)) / np.array(strid) + 1).astype(np.int64)
+        temp[-1] = filters
+        
+        self.output_shape = tuple(temp)
+        #self.setup()
 
 
     def setup(self):
-        w = np.random.random(self.filters + self.kernel)
-        b = np.random.random(self.filters)
+        w = np.random.random((self.filters,) + self.kernel)
+        b = np.random.random((self.filters, self.kernel[-1]))
 
 
     def calc_convolutional_filter(self, x_input):
