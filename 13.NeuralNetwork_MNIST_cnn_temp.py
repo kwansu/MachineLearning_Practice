@@ -8,13 +8,9 @@ class Layer:
     momentum_rate = 0.9
     epsilon = 1e-8
 
-    def __init__(self, input_shape, output_shape, filters, kernel,
-                 *, stride=1, activation='ReLU'):
+    def __init__(self, input_shape, output_shape, *, activation='ReLU'):
         self.output_shape = output_shape
         self.input_shape = input_shape
-        self.filters = filters
-        self.kernel = kernel
-        self.stride = stride
         self.optimize_func = None
         self.dh_dw = None
         self.do_dh = None
@@ -48,26 +44,14 @@ class Layer:
         self.adam_count += 1
 
 
-    def setup(self, is_output):
-        # if is_output:
-        #     self.w = np.random.random((self.input_shape+1, self.output_shape))/64
-        # else:
-        #     self.w = np.random.random((self.input_shape+1, self.output_shape+1))/64
-        #     for i in range(self.input_shape):
-        #         self.w[i, self.output_shape] = 0.0
-        #     self.w[self.input_shape, self.output_shape] = 1.0
-
-        self.w = np.random.random(tuple(self.filters)+ self.kernel)
-        self.b = np.random.random(self.filters)
-
-    
-    def calc_convolutional_filter(self, x_input):
-        kernel = np.flipud(np.fliplr(self.kernel))
-        sub_matrices = np.lib.stride_tricks.as_strided(x_input,
-                        shape = tuple(np.subtract(x_input.shape[1:], kernel.shape))+kernel.shape, 
-                        strides = self.strides * 2)
-
-        return np.einsum('ij,klij->kl', kernel, sub_matrices)
+    def reset(self, is_output):
+        if is_output:
+            self.w = np.random.random((self.input_shape+1, self.output_shape))/64
+        else:
+            self.w = np.random.random((self.input_shape+1, self.output_shape+1))/64
+            for i in range(self.input_shape):
+                self.w[i, self.output_shape] = 0.0
+            self.w[self.input_shape, self.output_shape] = 1.0
 
 
     def progress(self, x_input):
@@ -123,6 +107,31 @@ class Layer:
         self.w -= learning_rate * m_hat / (np.sqrt(v_hat) + Layer.epsilon)
 
 
+class ConvolutionLayer(Layer):
+    def __init__(self, filters, kernel, input_shape, *, strid=1, activation):
+        super().__init__(input_shape, output_shape=None, activation=activation)
+        self.filters = filters
+        kernel = kernel + (self.input_shape[-1],)
+        self.kernel = kernel
+
+        # output 계산 -> 튜플이므로 계산방법을 변경해야 한다.
+        self.output_shape = (input_shape - kernel) / strid + 1
+
+
+    def setup(self):
+        w = np.random.random(self.filters + self.kernel)
+        b = np.random.random(self.filters)
+
+
+    def calc_convolutional_filter(self, x_input):
+        kernel = np.flipud(np.fliplr(self.kernel))
+        sub_matrices = np.lib.stride_tricks.as_strided(x_input,
+                        shape = tuple(np.subtract(x_input.shape[1:], kernel.shape))+kernel.shape, 
+                        strides = self.strides * 2)
+
+        return np.einsum('ij,klij->kl', kernel, sub_matrices)
+
+
 class Model:
     def __init__(self):
         self.layers = []
@@ -130,15 +139,21 @@ class Model:
         self.stop_count = 0
 
 
-    def setup(self):
+    def reset(self):
         for layer in self.layers:
-            layer.setup()
+            layer.reset()
 
 
     def add_layer(self, output_shape, input_shape=None, *, activation='ReLU'):
         if input_shape is None:
             input_shape = self.layers[-1].output_shape
         self.layers.append(Layer(input_shape, output_shape, activation=activation))
+
+
+    def add_convolution_layer(self, filters, kernel, input_shape=None, *, strid=1, activation='ReLU'):
+        if input_shape is None:
+            input_shape = self.layers[-1].output_shape
+        self.layers.append(ConvolutionLayer(filters, kernel, input_shape, strid=strid, activation=activation))
 
 
     def predict(self, x):
@@ -168,10 +183,10 @@ class Model:
     def compile(self, loss, *, optimizer=None):
         for layer in self.layers[:-1]:
             layer.set_optimizer(optimizer)
-            layer.setup(False)
+            layer.reset(False)
 
         self.layers[-1].set_optimizer(optimizer)
-        self.layers[-1].setup(True)
+        self.layers[-1].reset(True)
         
 
 
@@ -228,9 +243,9 @@ y_test = y_train[-test_count:]
 y_train = y_train[:-test_count]
 
 model = Model()
-model.add_layer(input_shape=784, output_shape=196)
-model.add_layer(output_shape=196)
-model.add_layer(output_shape=49)
+model.add_convolution_layer(16, (3,3), input_shape=(28,28,3))
+model.add_convolution_layer(32, (3,3))
+model.add_layer(output_shape=128)
 model.add_layer(output_shape=10, activation='softmax')
 model.compile(loss='cross_entropy', optimizer='Adam')
 model.fit(x_train, y_train, epochs=20, batch_size=128, learning_rate=0.001)
