@@ -44,15 +44,15 @@ class Layer:
         self.adam_count += 1
 
 
-    def reset(self, is_output):
-        if is_output:
-            self.w = np.random.random((self.input_shape+1, self.output_shape))/64
-        else:
-            self.w = np.random.random((self.input_shape+1, self.output_shape+1))/64
-            for i in range(self.input_shape):
-                self.w[i, self.output_shape] = 0.0
-            self.w[self.input_shape, self.output_shape] = 1.0
-
+    def setup(self):
+        # if is_output:
+        #     self.w = np.random.random((self.input_shape+1, self.output_shape))/64
+        # else:
+        #     self.w = np.random.random((self.input_shape+1, self.output_shape+1))/64
+        #     for i in range(self.input_shape):
+        #         self.w[i, self.output_shape] = 0.0
+        #     self.w[self.input_shape, self.output_shape] = 1.0
+        pass
 
     def progress(self, x_input):
         self.dh_dw = x_input.swapaxes(1, 2)
@@ -111,29 +111,34 @@ class ConvolutionLayer(Layer):
     def __init__(self, filters, kernel, input_shape, *, strid=1, activation):
         super().__init__(input_shape, output_shape=None, activation=activation)
         self.filters = filters
-        kernel = kernel + (self.input_shape[-1],)
         self.kernel = kernel
 
-        # output 계산 -> 튜플이므로 계산방법을 변경해야 한다.
-        temp = ((np.array(input_shape) - np.array(kernel)) / np.array(strid) + 1).astype(np.int64)
+        # output 계산
+        temp = ((np.array(input_shape) - np.array(kernel+(1,)))
+                 / np.array(strid) + 1).astype(np.int64)
         temp[-1] = filters
         
         self.output_shape = tuple(temp)
-        #self.setup()
 
 
     def setup(self):
-        w = np.random.random((self.filters,) + self.kernel)
-        b = np.random.random((self.filters, self.kernel[-1]))
+        self.w = np.random.random((self.filters,) + self.kernel)
+        self.b = np.random.random((self.filters, self.kernel[-1]))
 
 
-    def calc_convolutional_filter(self, x_input):
-        kernel = np.flipud(np.fliplr(self.kernel))
+    def calc_convolutional_filter(self, x_input, filter):
+        filter = np.flipud(np.fliplr(filter))
         sub_matrices = np.lib.stride_tricks.as_strided(x_input,
-                        shape = tuple(np.subtract(x_input.shape[1:], kernel.shape))+kernel.shape, 
+                        shape = tuple(np.subtract(x_input.shape[1:], filter.shape))+filter.shape, 
                         strides = self.strides * 2)
 
-        return np.einsum('ij,klij->kl', kernel, sub_matrices)
+        return np.einsum('ij,klij->kl', filter, sub_matrices)
+
+
+    def progress(self, x_input):
+        temp = self.calc_convolutional_filter(x_input, self.w[0])
+        a = None
+        return temp
 
 
 class Model:
@@ -161,7 +166,6 @@ class Model:
 
 
     def predict(self, x):
-        x = np.insert(x, x.shape[-1], 1., axis=-1)
         for layer in self.layers:
             x = layer.progress(x)
         return x
@@ -185,14 +189,10 @@ class Model:
 
     
     def compile(self, loss, *, optimizer=None):
-        for layer in self.layers[:-1]:
+        for layer in self.layers:
             layer.set_optimizer(optimizer)
-            layer.reset(False)
-
-        self.layers[-1].set_optimizer(optimizer)
-        self.layers[-1].reset(True)
+            layer.setup()
         
-
 
     def fit(self, x, y, epochs, learning_rate=0.01, batch_size = None, print_count=None):
         if print_count is None:
@@ -234,11 +234,10 @@ class Model:
 
 data = pd.read_csv("data/mnist_train.csv")
 x_train = data.drop(['label'], axis=1).values / 255.0
-x_train = x_train.reshape([x_train.shape[0], 1, x_train.shape[-1]])
+x_train = x_train.reshape(x_train.shape[0], 28, 28, 1)
 y_data = data['label']
 y_data = pd.get_dummies(y_data)
 y_train = y_data.values
-y_train = y_train.reshape([y_train.shape[0], 1, y_train.shape[-1]])
 
 test_count = int(len(y_train)/10)
 x_test = x_train[-test_count:]
@@ -247,20 +246,19 @@ y_test = y_train[-test_count:]
 y_train = y_train[:-test_count]
 
 model = Model()
-model.add_convolution_layer(16, (3,3), input_shape=(28,28,3))
+model.add_convolution_layer(16, (3,3), input_shape=(28,28,1))
 model.add_convolution_layer(32, (3,3))
 model.add_layer(output_shape=128)
 model.add_layer(output_shape=10, activation='softmax')
 model.compile(loss='cross_entropy', optimizer='Adam')
+
 model.fit(x_train, y_train, epochs=20, batch_size=128, learning_rate=0.001)
 
 
 # data = pd.read_csv("data/mnist_test.csv")
 # x_test = data.drop(['label'], axis=1).values / 255.0
-# x_test = x_test.reshape([x_test.shape[0], 1, x_test.shape[-1]])
 # y_data = data['label']
 # y_data = pd.get_dummies(y_data)
 # y_test = y_data.values
-# y_test = y_test.reshape([y_test.shape[0], 1, y_test.shape[-1]])
 
 model.evaluate(x_test, y_test)
