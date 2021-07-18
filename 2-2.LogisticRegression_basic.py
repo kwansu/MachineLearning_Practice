@@ -1,4 +1,3 @@
-from NumericalDifferentiation import differentiate
 import numpy as np
 
 x_data = np.array([60, 73, 90, 55, 81, 70, 69, 95, 88, 83, 65]).reshape(11,1)
@@ -16,6 +15,23 @@ def hypothesis(x, w, b):
 
 def calculate_loss(x, y, w, b):
     return np.sum((hypothesis(x, w, b) - y)**2)/len(y)
+
+
+def differentiate(f, x):
+    gradient = np.zeros_like(x)
+    x_iter = np.nditer(x, flags=['multi_index'])
+
+    while not x_iter.finished:
+        mi = x_iter.multi_index
+        source = x[mi]
+        dx = 1e-4 * source
+        y = f(x)
+        x[mi] = source + dx
+        y_plus_dx = f(x)
+        gradient[mi] = (y_plus_dx - y) / dx
+        x[mi] = source
+        x_iter.iternext()
+    return gradient
 
 
 w = np.random.random((1, 1))
