@@ -1,3 +1,4 @@
+from numpy.lib.utils import source
 import pandas as pd
 import numpy as np
 
@@ -12,8 +13,6 @@ class Layer:
         self.output_count = output_count
         self.input_count = input_count
         self.optimize_func = None
-        self.dh_dw = None
-        self.do_dh = None
         self.v = 0.0
         self.v_sum = 0.0
         self.m = 0.0
@@ -55,24 +54,46 @@ class Layer:
 
 
     def progress(self, x_input):
-        self.dh_dw = x_input.swapaxes(1, 2)
         return self.activate(np.matmul(x_input, self.w))
 
 
     def activate_sigmoid(self, z):
         s = 1 / (1+np.exp(-z))
-        self.do_dh = s*(1-s)
         return s
 
 
     def activate_relu(self, z):
-        self.do_dh = np.where(z > 0., 1., 0.)
         return np.where(z > 0., z, 0.)
 
     
     def activate_softmax(self, z):
         z = np.exp(z)
         return z / np.expand_dims(np.sum(z, axis=-1), axis=-1)
+
+
+    def differentiate(f, x):
+        gradient = np.zeros_like(x)
+        x_iter = np.nditer(x, flags=['multi_index'])
+
+        while not x_iter.finished:
+            mi = x_iter.multi_index
+            source = x[mi]
+            dx = 1e-4 * source
+            y = f(x)
+            x[mi] = source + dx
+            y_plus_dx = f(x)
+            gradient[mi] = (y_plus_dx - y) / dx
+            x[mi] = source
+            x_iter.iternext()
+        return gradient
+
+
+    def update_weight(self, loss, f):
+        for x in np.nditer(self.w):
+            source = x
+            dx = 1e-4 * x
+            y = f
+            x += dx
 
 
     def update_backpropagation(self, g, learning_rate):

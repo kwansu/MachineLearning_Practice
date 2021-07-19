@@ -1,7 +1,23 @@
-from NumericalDifferentiation import differentiate
 from performance_test import print_execution_time
 import numpy as np
 
+
+def differentiate(f, x):
+    gradient = np.zeros_like(x)
+    x_iter = np.nditer(x, flags=['multi_index'])
+
+    while not x_iter.finished:
+        mi = x_iter.multi_index
+        source = x[mi]
+        dx = 1e-4 * source
+        y = f(x)
+        x[mi] = source + dx
+        y_plus_dx = f(x)
+        gradient[mi] = (y_plus_dx - y) / dx
+        x[mi] = source
+        x_iter.iternext()
+    return gradient
+    
 
 class Layer:
     def __init__(self, input_shape, output_shape):

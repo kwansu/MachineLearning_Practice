@@ -1,4 +1,4 @@
-from NumericalDifferentiation import*
+import numpy as np
 import pandas as pd
 
 #########################데이터 전처리##############################
@@ -40,6 +40,24 @@ def hypothesis(x, W, B):
 
 def crossentropy(P):
     return -np.sum(y_data*np.log(P))
+
+
+def differentiate(f, x):
+    gradient = np.zeros_like(x)
+    x_iter = np.nditer(x, flags=['multi_index'])
+
+    while not x_iter.finished:
+        mi = x_iter.multi_index
+        source = x[mi]
+        dx = 1e-4 * source
+        y = f(x)
+        x[mi] = source + dx
+        y_plus_dx = f(x)
+        gradient[mi] = (y_plus_dx - y) / dx
+        x[mi] = source
+        x_iter.iternext()
+    return gradient
+    
 
 W = np.random.random((x_data.shape[-1], 4))
 B = np.random.random(4)

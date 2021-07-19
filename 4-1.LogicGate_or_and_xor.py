@@ -1,4 +1,4 @@
-from NumericalDifferentiation import differentiate
+import numpy as np
 import numpy as np
 
 
@@ -18,6 +18,23 @@ def binaryCrossentropy(p, y):
 
 def calculate_loss(x, y, w, b):
     return binaryCrossentropy(hypothesis(x, w, b), y)
+
+
+def differentiate(f, x):
+    gradient = np.zeros_like(x)
+    x_iter = np.nditer(x, flags=['multi_index'])
+
+    while not x_iter.finished:
+        mi = x_iter.multi_index
+        source = x[mi]
+        dx = 1e-4 * source
+        y = f(x)
+        x[mi] = source + dx
+        y_plus_dx = f(x)
+        gradient[mi] = (y_plus_dx - y) / dx
+        x[mi] = source
+        x_iter.iternext()
+    return gradient
 
 
 def evaluate(X, Y, w, b):

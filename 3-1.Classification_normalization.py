@@ -1,5 +1,5 @@
-from NumericalDifferentiation import*
 import matplotlib.pyplot as plt
+import numpy as np
 
 # 90점 이상 A, 80이상 B, 70이상 C, 70 미만 D
 x_data = np.array([60, 73, 90, 55, 81, 71, 69, 95, 88, 98, 65]).reshape(11, 1)
@@ -23,6 +23,23 @@ def hypothesis(x, W, B):
 
 def crossentropy(P):
     return -np.sum(y_data*np.log(P))
+
+
+def differentiate(f, x):
+    gradient = np.zeros_like(x)
+    x_iter = np.nditer(x, flags=['multi_index'])
+
+    while not x_iter.finished:
+        mi = x_iter.multi_index
+        source = x[mi]
+        dx = 1e-4 * source
+        y = f(x)
+        x[mi] = source + dx
+        y_plus_dx = f(x)
+        gradient[mi] = (y_plus_dx - y) / dx
+        x[mi] = source
+        x_iter.iternext()
+    return gradient
 
 
 W = np.array([(1.1, 1.25, 1.4, 1.6)])  # np.random.random((1, 4))
@@ -52,15 +69,15 @@ for i in range(10001):
     # y_set = numerical_derivative(lambda t: loss(
     #     np.array(x_set).reshape(100, 1), t, B, y_set), W)
 
-    w_set = tuple(i * 0.01 for i in range(0, 100))
-    dw_set = []
-    _w = np.array([(1.0,1.0,1.0,1.0)])
-    for i in w_set:
-        _w[0,-1] = i
-        dw_set.append(differentiate(lambda t: loss(x_data, t, B), _w)[0,-1])
+    # w_set = tuple(i * 0.01 for i in range(0, 100))
+    # dw_set = []
+    # _w = np.array([(1.0,1.0,1.0,1.0)])
+    # for i in w_set:
+    #     _w[0,-1] = i
+    #     dw_set.append(differentiate(lambda t: loss(x_data, t, B), _w)[0,-1])
     
-    plt.plot(w_set, tuple(dw_set))
-    plt.show()
+    # plt.plot(w_set, tuple(dw_set))
+    # plt.show()
 
     W -= (learning_rate *
           differentiate(lambda t: loss(x_data_normalized, t, B), W))
