@@ -1,3 +1,4 @@
+from numpy import random
 from numpy.lib.utils import source
 import pandas as pd
 import numpy as np
@@ -43,18 +44,13 @@ class Layer:
         self.adam_count += 1
 
 
-    def reset(self, is_output):
-        if is_output:
-            self.w = np.random.random((self.input_count+1, self.output_count))/64
-        else:
-            self.w = np.random.random((self.input_count+1, self.output_count+1))/64
-            for i in range(self.input_count):
-                self.w[i, self.output_count] = 0.0
-            self.w[self.input_count, self.output_count] = 1.0
+    def reset(self):
+        self.w = np.random.random((self.input_count, self.output_count))
+        self.b = np.random.random(self.output_count)
 
 
     def progress(self, x_input):
-        return self.activate(np.matmul(x_input, self.w))
+        return self.activate(np.matmul(x_input, self.w)+self.b)
 
 
     def activate_sigmoid(self, z):
@@ -71,21 +67,23 @@ class Layer:
         return z / np.expand_dims(np.sum(z, axis=-1), axis=-1)
 
 
-    def differentiate(f, x):
-        gradient = np.zeros_like(x)
-        x_iter = np.nditer(x, flags=['multi_index'])
+    def update_SGD(self, f, fx, learning_rate):
+        w_iter = np.nditer(self.w, flags=['multi_index'])
 
-        while not x_iter.finished:
-            mi = x_iter.multi_index
-            source = x[mi]
+        while not w_iter.finished:
+            mi = w_iter.multi_index
+            source = self.w[mi]
             dx = 1e-4 * source
-            y = f(x)
-            x[mi] = source + dx
-            y_plus_dx = f(x)
-            gradient[mi] = (y_plus_dx - y) / dx
-            x[mi] = source
-            x_iter.iternext()
-        return gradient
+            self.w[mi] = source + dx
+            f_x_plus_dx = f()
+            gradient = (f_x_plus_dx - fx) / dx
+            self.w[mi] = source - learning_rate * gradient
+            w_iter.iternext()
+
+        source = self.b
+        self.b = source + (source*1e-4)
+        f_x_plus_dx = f()
+        self.b = source - learning_rate * gradient
 
 
     def update_weight(self, loss, f):
@@ -94,19 +92,6 @@ class Layer:
             dx = 1e-4 * x
             y = f
             x += dx
-
-
-    def update_backpropagation(self, g, learning_rate):
-        g = self.do_dh * g
-        return self.calc_backpropagation_and_update(g, learning_rate)
-
-
-    def calc_backpropagation_and_update(self, gradient, learning_rate):
-        temp = np.matmul(self.dh_dw, gradient)
-        gradient = np.matmul(gradient, self.w.T)
-        gradient[:,:,-1] = 0.0
-        self.optimize_func(np.sum(temp, axis=0), learning_rate)
-        return gradient
 
 
     def optimize_momentum(self, gradient, learning_rate):
@@ -158,16 +143,10 @@ class Model:
         return -np.sum(y*np.log(p+delta))
 
     
-    def update_layers(self, x, y, learning_rate, ephoc=None):
-        c = self.predict(x)
-        if ephoc is not None:
-            temp = self.calc_cross_entropy(c, y)
-            self.loss += temp
-        gradient = c-y
-        gradient = self.layers[-1].calc_backpropagation_and_update(gradient, learning_rate)
-        other_layers = self.layers[:-1]
-        for layer in other_layers[::-1]:
-            gradient = layer.update_backpropagation(gradient, learning_rate)
+    def update_layers(self, x, y, learning_rate):
+        fx = self.predict(x)
+        for layer in self.layers:
+            layer.update_SGD(lambda : self.predict(x), fx, learning_rate)
 
     
     def compile(self, loss, *, optimizer=None):
@@ -188,14 +167,14 @@ class Model:
         bins, other = divmod(len(y), batch_size)
 
         for i in range(epochs):
+            if i%print_count == 0:
+                loss = self.calc_cross_entropy(self.predict(x), y)
+                print(f'ephoc : {i}, loss : {loss}')
+            
             s = 0
-            self.loss = 0.0
             for b in range(bins):
                 e = s+batch_size
-                if i % print_count == 0:
-                    self.update_layers(x[s:e], y[s:e], learning_rate, i)
-                else:
-                    self.update_layers(x[s:e], y[s:e], learning_rate)
+                self.update_layers(x[s:e], y[s:e], learning_rate, i)
                 s = e
             
             for layer in self.layers:
@@ -203,8 +182,7 @@ class Model:
             
             if other != 0:
                 self.update_layers(x[s:], y[s:], learning_rate)
-            if i%print_count == 0:
-                print(f'ephoc : {i}, loss : {self.loss}')
+
             
 
     def evaluate(self, x, y):
