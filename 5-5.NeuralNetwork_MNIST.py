@@ -46,15 +46,15 @@ class Layer:
 
     def reset(self, is_output):
         if is_output:
-            self.w = np.random.random((self.input_count+1, self.output_count))/64
+            self.w = np.random.random((self.input_count+1, self.output_count))
         else:
-            self.w = np.random.random((self.input_count+1, self.output_count+1))/64
+            self.w = np.random.random((self.input_count+1, self.output_count+1))
             for i in range(self.input_count):
                 self.w[i, self.output_count] = 0.0
             self.w[self.input_count, self.output_count] = 1.0
 
 
-    def progress(self, x_input):
+    def progress(self, x_input):#forword
         self.dh_dw = x_input.swapaxes(1, 2)
         return self.activate(np.matmul(x_input, self.w))
 
@@ -75,7 +75,7 @@ class Layer:
         return z / np.expand_dims(np.sum(z, axis=-1), axis=-1)
 
 
-    def update_backpropagation(self, g, learning_rate):
+    def update_backpropagation(self, g, learning_rate):#backword
         g = self.do_dh * g
         return self.calc_backpropagation_and_update(g, learning_rate)
 
@@ -142,7 +142,7 @@ class Model:
         if ephoc is not None:
             temp = self.calc_cross_entropy(c, y)
             self.loss += temp
-        gradient = c-y
+        gradient = c-y#dL / ds
         gradient = self.layers[-1].calc_backpropagation_and_update(gradient, learning_rate)
         other_layers = self.layers[:-1]
         for layer in other_layers[::-1]:

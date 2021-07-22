@@ -22,18 +22,25 @@ class Layer:
         self.ds_dh = s*(1-s)
         return s
 
-    def update_backPropagation(self, g, learning_rate):
-        g = self.ds_dh * g
-        return self.update_layer(g, learning_rate)
+    def update_SGD(self, f, fx, learning_rate):
+        w_iter = np.nditer(self.w, flags=['multi_index'])
 
-    def update_layer(self, gradient, learning_rate):
-        temp2 = np.sum(gradient, axis=(0,1))
-        self.b -= learning_rate * temp2
-        temp = np.matmul(self.dh_dw, gradient)
-        temp = np.sum(temp, axis=0)
-        gradient = np.matmul(gradient, self.w.T)
-        self.w -= learning_rate * temp
-        return gradient
+        while not w_iter.finished:
+            mi = w_iter.multi_index
+            source = self.w[mi]
+            dx = 1e-4 * source
+            self.w[mi] = source + dx
+            f_x_plus_dx = f()
+            gradient = (f_x_plus_dx - fx) / dx
+            self.w[mi] = source - learning_rate * gradient
+            w_iter.iternext()
+
+        source = self.b
+        self.b = source + (source*1e-4)
+        f_x_plus_dx = f()
+        self.b = source - learning_rate * gradient
+
+        
 
 
 class Model:

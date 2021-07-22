@@ -13,6 +13,9 @@ class Layer:
     def __init__(self, input_count, output_count, *, activation='ReLU'):
         self.output_count = output_count
         self.input_count = input_count
+        self.ppp = output_count
+        self.w = np.random.random((input_count, output_count))
+        self.b = np.random.random((output_count))
         self.optimize_func = None
         self.v = 0.0
         self.v_sum = 0.0
@@ -45,11 +48,11 @@ class Layer:
 
 
     def reset(self):
-        self.w = np.random.random((self.input_count, self.output_count))
-        self.b = np.random.random(self.output_count)
+        self.w = np.random.random(self.w.shape)
+        self.b = np.random.random(self.b.shape)
 
 
-    def progress(self, x_input):
+    def progress_forword(self, x_input):
         return self.activate(np.matmul(x_input, self.w)+self.b)
 
 
@@ -59,7 +62,7 @@ class Layer:
 
 
     def activate_relu(self, z):
-        return np.where(z > 0., z, 0.)
+        return np.where(z > 0., z/self.ppp, 0.)
 
     
     def activate_softmax(self, z):
@@ -84,14 +87,6 @@ class Layer:
         self.b = source + (source*1e-4)
         f_x_plus_dx = f()
         self.b = source - learning_rate * gradient
-
-
-    def update_weight(self, loss, f):
-        for x in np.nditer(self.w):
-            source = x
-            dx = 1e-4 * x
-            y = f
-            x += dx
 
 
     def optimize_momentum(self, gradient, learning_rate):
@@ -132,9 +127,8 @@ class Model:
 
 
     def predict(self, x):
-        x = np.insert(x, x.shape[-1], 1., axis=-1)
         for layer in self.layers:
-            x = layer.progress(x)
+            x = layer.progress_forword(x)
         return x
 
     
@@ -144,18 +138,15 @@ class Model:
 
     
     def update_layers(self, x, y, learning_rate):
-        fx = self.predict(x)
+        fx = self.calc_cross_entropy(self.predict(x), y)
         for layer in self.layers:
-            layer.update_SGD(lambda : self.predict(x), fx, learning_rate)
+            layer.update_SGD(lambda :self.calc_cross_entropy(self.predict(x), y), fx, learning_rate)
 
     
     def compile(self, loss, *, optimizer=None):
-        for layer in self.layers[:-1]:
+        for layer in self.layers:
             layer.set_optimizer(optimizer)
-            layer.reset(False)
-
-        self.layers[-1].set_optimizer(optimizer)
-        self.layers[-1].reset(True)
+            layer.reset()
         
 
 
@@ -168,13 +159,14 @@ class Model:
 
         for i in range(epochs):
             if i%print_count == 0:
-                loss = self.calc_cross_entropy(self.predict(x), y)
+                loss = self.calc_cross_entropy(self.predict(x[:256]), y[:256])
                 print(f'ephoc : {i}, loss : {loss}')
             
             s = 0
             for b in range(bins):
+                print('>', end='')
                 e = s+batch_size
-                self.update_layers(x[s:e], y[s:e], learning_rate, i)
+                self.update_layers(x[s:e], y[s:e], learning_rate)
                 s = e
             
             for layer in self.layers:
@@ -204,6 +196,7 @@ y_data = pd.get_dummies(y_data)
 y_train = y_data.values
 y_train = y_train.reshape([y_train.shape[0], 1, y_train.shape[-1]])
 
+
 test_count = int(len(y_train)/10)
 x_test = x_train[-test_count:]
 x_train = x_train[:-test_count]
@@ -212,12 +205,12 @@ y_train = y_train[:-test_count]
 
 model = Model()
 model.add_layer(input_count=784, output_count=256)
-model.add_layer(output_count=512)
 model.add_layer(output_count=256)
 model.add_layer(output_count=128)
+model.add_layer(output_count=64)
 model.add_layer(output_count=10, activation='softmax')
 model.compile(loss='cross_entropy', optimizer='Adam')
-model.fit(x_train, y_train, epochs=20, batch_size=128, learning_rate=0.001)
+model.fit(x_train, y_train, epochs=10, batch_size=128, learning_rate=0.001)
 
 
 # data = pd.read_csv("data/mnist_test.csv")
