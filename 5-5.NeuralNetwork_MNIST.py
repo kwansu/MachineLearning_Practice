@@ -46,9 +46,9 @@ class Layer:
 
     def reset(self, is_output):
         if is_output:
-            self.w = np.random.random((self.input_count+1, self.output_count))
+            self.w = np.random.random((self.input_count+1, self.output_count)) / (self.input_count*0.1)
         else:
-            self.w = np.random.random((self.input_count+1, self.output_count+1))
+            self.w = np.random.random((self.input_count+1, self.output_count+1)) / (self.input_count*0.1)
             for i in range(self.input_count):
                 self.w[i, self.output_count] = 0.0
             self.w[self.input_count, self.output_count] = 1.0
@@ -213,8 +213,6 @@ y_train = y_train[:-test_count]
 
 model = Model()
 model.add_layer(input_count=784, output_count=256)
-model.add_layer(output_count=512)
-model.add_layer(output_count=256)
 model.add_layer(output_count=128)
 model.add_layer(output_count=10, activation='softmax')
 model.compile(loss='cross_entropy', optimizer='Adam')

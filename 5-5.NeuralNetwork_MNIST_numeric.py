@@ -13,6 +13,7 @@ class Layer:
     def __init__(self, input_count, output_count, *, activation='ReLU'):
         self.output_count = output_count
         self.input_count = input_count
+        self.count = (input_count+1) * output_count
         self.ppp = output_count
         self.w = np.random.random((input_count, output_count))
         self.b = np.random.random((output_count))
@@ -140,14 +141,18 @@ class Model:
     def update_layers(self, x, y, learning_rate):
         fx = self.calc_cross_entropy(self.predict(x), y)
         for layer in self.layers:
+            print('>', end='')
             layer.update_SGD(lambda :self.calc_cross_entropy(self.predict(x), y), fx, learning_rate)
 
     
     def compile(self, loss, *, optimizer=None):
+        self.count = 0
         for layer in self.layers:
             layer.set_optimizer(optimizer)
             layer.reset()
-        
+            self.count += layer.count
+
+        print(f"웨이트 수 : {self.count}")
 
 
     def fit(self, x, y, epochs, learning_rate=0.01, batch_size = None, print_count=None):
@@ -164,7 +169,7 @@ class Model:
             
             s = 0
             for b in range(bins):
-                print('>', end='')
+                print('batch start')
                 e = s+batch_size
                 self.update_layers(x[s:e], y[s:e], learning_rate)
                 s = e
