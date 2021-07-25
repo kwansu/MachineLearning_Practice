@@ -35,19 +35,43 @@ class OptimizerSGD:
         w -= learning_rate * np.mean(gradient, axis=0)
 
 
+class OptimizerAdam:
+    beta1 = 0.9
+    beta2 = 0.999
+    momentum_rate = 0.9
+    epsilon = 1e-8
+
+    def __init__(self) -> None:
+        self.v = 0.0
+        self.m = 0.0
+        self.v_sum = 0.0
+        self.m_sum = 0.0
+        self.adam_count = 1
+    
+    def __call__(self, w, gradient, learning_rate):
+        m = Layer.beta1*self.m + (1-Layer.beta1)*gradient
+        v = Layer.beta2*self.v + (1-Layer.beta2)*np.power(gradient,2)
+        self.m_sum += m
+        self.v_sum += v
+        m_hat = m / (1 - np.power(Layer.beta1, self.adam_count))
+        v_hat = v / (1 - np.power(Layer.beta2, self.adam_count))
+        w -= learning_rate * m_hat / (np.sqrt(v_hat) + Layer.epsilon)
+
+
 class Layer:
     def __init__(self, input_shape, output_shape, activation: ActivationFunc):
         self.input_shape = input_shape
         self.output_shape = output_shape
         self.activation = activation
 
-    def reset(self, is_end_layer=False):
+    def reset(self, optimizer, is_end_layer=False):
         if is_end_layer:
-            self.w = np.random.random((self.input_shape+1, self.output_shape))
+            self.w = np.random.random((self.input_shape+1, self.output_shape))/ (self.input_shape*0.1)
         else:
-            self.w = np.random.random((self.input_shape+1, self.output_shape+1))
+            self.w = np.random.random((self.input_shape+1, self.output_shape+1))/ (self.input_shape*0.1)
             self.w[:, self.output_shape] = 0.0
             self.w[self.input_shape, self.output_shape] = 1.0
+        self.optimizer = optimizer
 
     def forward(self, x_input):
         self.dh_dw = x_input.swapaxes(-2, -1)
@@ -59,11 +83,11 @@ class Layer:
         self.backword_update(gradient, learning_rate)
 
     def backword_update(self, gradient, learning_rate):
-        #self.optimizer(self.w, self.dh_dw * gradient, learning_rate)
         t = self.dh_dw * gradient
-        temp2 = np.mean(t, axis=0)
         gradient = np.matmul(gradient, self.w.T)
         gradient[:,:,-1] = 0.0
+        #self.optimizer(self.w, np.sum(self.dh_dw * gradient), learning_rate)
+        temp2 = np.sum(t, axis=0)
         self.w -= learning_rate * temp2
         return gradient
         
@@ -87,9 +111,10 @@ class Model:
         self.layers.append(Layer(input_shape, output_shape, activation))
 
     def compile(self):
+        sgd = OptimizerSGD()
         for layer in self.layers[:-1]:
-            layer.reset()
-        self.layers[-1].reset(True)
+            layer.reset(sgd)
+        self.layers[-1].reset(sgd, True)
 
     def predict(self, x):
         x = np.insert(x, x.shape[-1], 1., axis=-1)
@@ -129,7 +154,7 @@ class Model:
                 s = e
             if other != 0:
                 self.update_layers(x[s:], y[s:], learning_rate, i)
-            if i%print_count == 0:
+            if i is not None:
                 print(f'ephoc : {i}, loss : {self.loss}')
 
     def evaluate(self, x, y):
@@ -158,13 +183,11 @@ y_test = y_train[-test_count:]
 y_train = y_train[:-test_count]
 
 model = Model()
-model.add_layer(input_shape=784, output_shape=512)
-model.add_layer(output_shape=512)
-model.add_layer(output_shape=256)
-model.add_layer(output_shape=128)
+model.add_layer(input_shape=784, output_shape=256, activation_func='ReLU')
+model.add_layer(output_shape=128, activation_func='ReLU')
 model.add_layer(output_shape=10, activation_func='Softmax')
 model.compile()
-model.fit(x_train, y_train, epochs=20, batch_size=128, learning_rate=0.001)
+model.fit(x_train, y_train, epochs=20, batch_size=128, learning_rate=0.005)
 
 
 # data = pd.read_csv("data/mnist_test.csv")

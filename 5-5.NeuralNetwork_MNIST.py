@@ -49,8 +49,8 @@ class Layer:
             self.w = np.random.random((self.input_count+1, self.output_count)) / (self.input_count*0.1)
         else:
             self.w = np.random.random((self.input_count+1, self.output_count+1)) / (self.input_count*0.1)
-            for i in range(self.input_count):
-                self.w[i, self.output_count] = 0.0
+            
+            self.w[:, self.output_count] = 0.0
             self.w[self.input_count, self.output_count] = 1.0
 
 
@@ -81,7 +81,7 @@ class Layer:
 
 
     def calc_backpropagation_and_update(self, gradient, learning_rate):
-        temp = np.matmul(self.dh_dw, gradient)
+        temp = self.dh_dw * gradient
         gradient = np.matmul(gradient, self.w.T)
         gradient[:,:,-1] = 0.0
         self.optimize_func(np.sum(temp, axis=0), learning_rate)
