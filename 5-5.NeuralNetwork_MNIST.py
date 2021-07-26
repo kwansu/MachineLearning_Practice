@@ -13,7 +13,7 @@ class Layer:
         self.input_count = input_count
         self.optimize_func = None
         self.dh_dw = None
-        self.da_dh = None
+        self.do_dh = None
         self.v = 0.0
         self.v_sum = 0.0
         self.m = 0.0
@@ -54,19 +54,19 @@ class Layer:
             self.w[self.input_count, self.output_count] = 1.0
 
 
-    def forword(self, x_input):
+    def progress(self, x_input):#forword
         self.dh_dw = x_input.swapaxes(1, 2)
         return self.activate(np.matmul(x_input, self.w))
 
 
     def activate_sigmoid(self, z):
         s = 1 / (1+np.exp(-z))
-        self.da_dh = s*(1-s)
+        self.do_dh = s*(1-s)
         return s
 
 
     def activate_relu(self, z):
-        self.da_dh = np.where(z > 0., 1., 0.)
+        self.do_dh = np.where(z > 0., 1., 0.)
         return np.where(z > 0., z, 0.)
 
     
@@ -75,8 +75,8 @@ class Layer:
         return z / np.expand_dims(np.sum(z, axis=-1), axis=-1)
 
 
-    def backword(self, g, learning_rate):
-        g = self.da_dh * g
+    def update_backpropagation(self, g, learning_rate):#backword
+        g = self.do_dh * g
         return self.calc_backpropagation_and_update(g, learning_rate)
 
 
@@ -128,7 +128,7 @@ class Model:
     def predict(self, x):
         x = np.insert(x, x.shape[-1], 1., axis=-1)
         for layer in self.layers:
-            x = layer.forword(x)
+            x = layer.progress(x)
         return x
 
     
@@ -146,7 +146,7 @@ class Model:
         gradient = self.layers[-1].calc_backpropagation_and_update(gradient, learning_rate)
         other_layers = self.layers[:-1]
         for layer in other_layers[::-1]:
-            gradient = layer.backword(gradient, learning_rate)
+            gradient = layer.update_backpropagation(gradient, learning_rate)
 
     
     def compile(self, loss, *, optimizer=None):
