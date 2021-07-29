@@ -45,13 +45,6 @@ class Layer:
 
 
     def setup(self):
-        # if is_output:
-        #     self.w = np.random.random((self.input_shape+1, self.output_shape))/64
-        # else:
-        #     self.w = np.random.random((self.input_shape+1, self.output_shape+1))/64
-        #     for i in range(self.input_shape):
-        #         self.w[i, self.output_shape] = 0.0
-        #     self.w[self.input_shape, self.output_shape] = 1.0
         pass
 
     def progress(self, x_input):
